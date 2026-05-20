@@ -1,10 +1,11 @@
 // =============================================
 //  src/navigation/AppNavigator.js — Final Version
 //  All screens with Settings (3 dot menu) for all roles
+//  FIXED: web compatibility for map screen
 // =============================================
 
 import React from 'react';
-import { ActivityIndicator, View, Text, TouchableOpacity } from 'react-native';
+import { ActivityIndicator, View, Text, TouchableOpacity, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator }     from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -17,7 +18,11 @@ import RegisterScreen       from '../screens/RegisterScreen';
 
 // Seeker screens
 import HomeScreen           from '../screens/HomeScreen';
-import MapScreen            from '../screens/MapScreen';
+// Conditional import for MapScreen – use placeholder on web, real map on mobile
+const MapScreen = Platform.OS === 'web'
+  ? require('../screens/MapScreenPlaceholder').default
+  : require('../screens/MapScreen').default;
+
 import PostRequestScreen    from '../screens/PostRequestScreen';
 import MyRequestsScreen     from '../screens/MyRequestsScreen';
 
