@@ -1,179 +1,204 @@
 // =============================================
-//  src/screens/MapScreen.js
-//  Shows nearby providers on a map.
-//  Uses device GPS to find user location.
-//  Privacy: providers only see approximate distance!
+//  src/screens/MapScreen.native.js
+//  BRAND COLORS: Ethiopian Green (#2E7D32) + Gold (#F9A825)
+//  Shows nearby providers on Google Maps
 // =============================================
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ActivityIndicator,
-  Alert, TouchableOpacity, FlatList, SafeAreaView
+  View, Text, StyleSheet, SafeAreaView,
+  ActivityIndicator, TouchableOpacity, Alert
 } from 'react-native';
-import MapView, { Marker, Circle } from 'react-native-maps';
+import MapView, { Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { providerAPI } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 
-export default function MapScreen({ navigation }) {
-  const [location,  setLocation]  = useState(null);
+const BRAND = {
+  primary: '#2E7D32',
+  primaryLight: '#E8F5E9',
+  secondary: '#F9A825',
+  text: '#374151',
+  textLight: '#6B7280',
+  white: '#FFFFFF',
+};
+
+export default function MapScreen() {
+  const { user } = useAuth();
+  const mapRef = useRef(null);
+  const [region, setRegion] = useState(null);
   const [providers, setProviders] = useState([]);
-  const [loading,   setLoading]   = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [selectedProvider, setSelectedProvider] = useState(null);
 
   useEffect(() => {
-    getLocationAndProviders();
+    getCurrentLocation();
   }, []);
 
-  async function getLocationAndProviders() {
+  async function getCurrentLocation() {
     try {
-      // 1. Ask for GPS permission
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert(
-          'Location Required',
-          'Please enable location access to see nearby providers.'
-        );
-        setLoading(false);
+        Alert.alert('Permission Denied', 'Location access is needed to see nearby providers');
         return;
       }
+      
+      const location = await Location.getCurrentPositionAsync({});
+      const newRegion = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+      };
+      setRegion(newRegion);
+      loadNearbyProviders(location.coords.latitude, location.coords.longitude);
+    } catch (error) {
+      console.log('Location error:', error);
+      setLoading(false);
+    }
+  }
 
-      // 2. Get current GPS position
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-      const { latitude, longitude } = loc.coords;
-      setLocation({ latitude, longitude });
-
-      // 3. Fetch nearby providers from our backend
-      const data = await providerAPI.getNearby(latitude, longitude);
-      setProviders(data.providers);
-
+  async function loadNearbyProviders(lat, lon) {
+    try {
+      const data = await providerAPI.getNearby(lat, lon);
+      setProviders(data.providers || []);
     } catch (err) {
-      Alert.alert('Error', 'Could not load map data');
+      console.log('Error loading providers:', err);
     } finally {
       setLoading(false);
     }
   }
 
+  function onRegionChangeComplete(newRegion) {
+    setRegion(newRegion);
+    loadNearbyProviders(newRegion.latitude, newRegion.longitude);
+  }
+
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#1a56db" />
-        <Text style={styles.loadingText}>Finding your location...</Text>
-      </View>
+      <SafeAreaView style={[styles.container, { backgroundColor: BRAND.white }]}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={BRAND.primary} />
+          <Text style={[styles.loadingText, { color: BRAND.textLight }]}>Loading nearby providers...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
-  if (!location) {
+  if (!region) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.errorText}>📍 Location not available</Text>
-        <TouchableOpacity style={styles.retryBtn} onPress={getLocationAndProviders}>
-          <Text style={styles.retryText}>Try Again</Text>
-        </TouchableOpacity>
-      </View>
+      <SafeAreaView style={[styles.container, { backgroundColor: BRAND.white }]}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorIcon}>📍</Text>
+          <Text style={[styles.errorText, { color: BRAND.text }]}>Unable to get your location</Text>
+          <TouchableOpacity style={[styles.retryBtn, { backgroundColor: BRAND.primary }]} onPress={getCurrentLocation}>
+            <Text style={styles.retryBtnText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Map view */}
       <MapView
+        ref={mapRef}
         style={styles.map}
-        initialRegion={{
-          latitude:       location.latitude,
-          longitude:      location.longitude,
-          latitudeDelta:  0.05,
-          longitudeDelta: 0.05,
-        }}
+        provider={PROVIDER_GOOGLE}
+        region={region}
+        onRegionChangeComplete={onRegionChangeComplete}
+        showsUserLocation={true}
+        showsMyLocationButton={true}
       >
-        {/* Blue marker = seeker's location */}
-        <Marker
-          coordinate={location}
-          title="You are here"
-          pinColor="#1a56db"
-        />
-
-        {/* 10km radius circle — the matching zone */}
+        {/* 10km Radius Circle */}
         <Circle
-          center={location}
+          center={{ latitude: region.latitude, longitude: region.longitude }}
           radius={10000}
-          strokeColor="rgba(26, 86, 219, 0.3)"
-          fillColor="rgba(26, 86, 219, 0.05)"
+          strokeColor={BRAND.primary}
+          fillColor="rgba(46, 125, 50, 0.1)"
+          strokeWidth={2}
         />
 
-        {/* Green markers = nearby providers */}
-        {providers.map((provider) => (
+        {/* Provider Markers */}
+        {providers.map(provider => (
           <Marker
             key={provider.id}
             coordinate={{
-              // Note: we only have approximate distance, not exact coords
-              // So we place markers slightly offset for display purposes
-              latitude:  location.latitude  + (Math.random() - 0.5) * 0.05,
-              longitude: location.longitude + (Math.random() - 0.5) * 0.05,
+              latitude: parseFloat(provider.latitude),
+              longitude: parseFloat(provider.longitude)
             }}
+            onPress={() => setSelectedProvider(provider)}
             title={provider.name}
-            description={`⭐ ${provider.avg_rating} • ${provider.distance_km} km away`}
-            pinColor="#10b981"
-          />
+            description={`${provider.distance_km} km away`}
+          >
+            <View style={styles.markerContainer}>
+              <Text style={styles.markerIcon}>👷</Text>
+            </View>
+          </Marker>
         ))}
       </MapView>
 
-      {/* Provider list below the map */}
-      <View style={styles.listContainer}>
-        <Text style={styles.listTitle}>
-          {providers.length} provider{providers.length !== 1 ? 's' : ''} nearby
-        </Text>
-        <FlatList
-          data={providers}
-          keyExtractor={(item) => item.id.toString()}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <View style={styles.providerCard}>
-              <Text style={styles.providerEmoji}>👷</Text>
-              <Text style={styles.providerName}>{item.name}</Text>
-              <Text style={styles.providerDist}>📍 {item.distance_km} km</Text>
-              <Text style={styles.providerRating}>⭐ {item.avg_rating?.toFixed(1) || 'New'}</Text>
-            </View>
-          )}
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>No providers online near you right now</Text>
-          }
-        />
-      </View>
+      {/* Info Card for Selected Provider */}
+      {selectedProvider && (
+        <View style={[styles.infoCard, { backgroundColor: BRAND.white }]}>
+          <View style={styles.infoHeader}>
+            <Text style={[styles.infoName, { color: BRAND.primary }]}>{selectedProvider.name}</Text>
+            <TouchableOpacity onPress={() => setSelectedProvider(null)}>
+              <Text style={styles.closeIcon}>✕</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={[styles.infoDistance, { color: BRAND.secondary }]}>
+            📍 {selectedProvider.distance_km} km away
+          </Text>
+          <View style={styles.ratingRow}>
+            <Text style={styles.ratingStar}>⭐</Text>
+            <Text style={[styles.ratingText, { color: BRAND.text }]}>{selectedProvider.avg_rating || 'New'}</Text>
+          </View>
+          <Text style={[styles.infoHint, { color: BRAND.textLight }]}>
+            {selectedProvider.is_online ? '🟢 Currently Online' : '⚫ Offline'}
+          </Text>
+        </View>
+      )}
 
-      {/* Post request button */}
-      <TouchableOpacity
-        style={styles.postBtn}
-        onPress={() => navigation.navigate('PostRequest', {})}
-      >
-        <Text style={styles.postBtnText}>+ Post a Service Request</Text>
-      </TouchableOpacity>
+      {/* Legend */}
+      <View style={[styles.legend, { backgroundColor: BRAND.white }]}>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: BRAND.primary }]} />
+          <Text style={[styles.legendText, { color: BRAND.text }]}>10km Search Radius</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <Text style={styles.legendIcon}>👷</Text>
+          <Text style={[styles.legendText, { color: BRAND.text }]}>Available Provider</Text>
+        </View>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container:    { flex: 1, backgroundColor: '#fff' },
-  map:          { height: '50%' },
-  center:       { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loadingText:  { marginTop: 12, color: '#6b7280' },
-  errorText:    { fontSize: 16, color: '#374151', marginBottom: 16 },
-  retryBtn:     { backgroundColor: '#1a56db', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 10 },
-  retryText:    { color: '#fff', fontWeight: '600' },
-  listContainer:{ padding: 16, borderTopWidth: 1, borderTopColor: '#e5e7eb' },
-  listTitle:    { fontSize: 15, fontWeight: '600', color: '#374151', marginBottom: 12 },
-  providerCard: {
-    backgroundColor: '#f9fafb', borderRadius: 12,
-    padding: 14, marginRight: 10, alignItems: 'center', minWidth: 110,
-    borderWidth: 1, borderColor: '#e5e7eb',
-  },
-  providerEmoji:  { fontSize: 28, marginBottom: 4 },
-  providerName:   { fontSize: 13, fontWeight: '600', color: '#111', textAlign: 'center' },
-  providerDist:   { fontSize: 12, color: '#6b7280', marginTop: 2 },
-  providerRating: { fontSize: 12, color: '#f59e0b', marginTop: 2 },
-  emptyText:      { color: '#9ca3af', fontSize: 14 },
-  postBtn: {
-    margin: 16, backgroundColor: '#1a56db',
-    borderRadius: 14, paddingVertical: 16, alignItems: 'center',
-  },
-  postBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  container: { flex: 1 },
+  map: { flex: 1 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 12, fontSize: 14 },
+  errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  errorIcon: { fontSize: 48, marginBottom: 16 },
+  errorText: { fontSize: 16, marginBottom: 20 },
+  retryBtn: { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 10 },
+  retryBtnText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
+  markerContainer: { backgroundColor: '#2E7D32', borderRadius: 20, padding: 6, borderWidth: 2, borderColor: '#FFF' },
+  markerIcon: { fontSize: 16 },
+  infoCard: { position: 'absolute', bottom: 20, left: 16, right: 16, borderRadius: 16, padding: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 5 },
+  infoHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  infoName: { fontSize: 18, fontWeight: 'bold' },
+  closeIcon: { fontSize: 20, color: '#9CA3AF', padding: 4 },
+  infoDistance: { fontSize: 14, marginBottom: 8 },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 8 },
+  ratingStar: { fontSize: 14 },
+  ratingText: { fontSize: 13 },
+  infoHint: { fontSize: 12, marginTop: 4 },
+  legend: { position: 'absolute', top: 60, right: 16, borderRadius: 12, padding: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  legendDot: { width: 12, height: 12, borderRadius: 6, marginRight: 8 },
+  legendIcon: { fontSize: 14, marginRight: 8 },
+  legendText: { fontSize: 12 },
 });
