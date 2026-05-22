@@ -1,83 +1,91 @@
 // =============================================
 //  src/screens/ProviderHomeScreen.js
-//  Provider's main screen:
-//  - Toggle online/offline
-//  - See their stats
-//  - Quick access to offered jobs
-//  FIXED: added logout from useAuth + safe handler
+//  BRAND COLORS: Ethiopian Green (#2E7D32) + Gold (#F9A825)
 // =============================================
 
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView,
-  TouchableOpacity, Alert, ActivityIndicator,
-  ScrollView, RefreshControl
+  TouchableOpacity, ScrollView, Alert,
+  ActivityIndicator, RefreshControl
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import * as Location from 'expo-location';
-import { providerAPI, requestAPI, reviewAPI } from '../api/client';
+import { providerAPI, requestAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
+
+const BRAND = {
+  primary: '#2E7D32',
+  primaryDark: '#1B5E20',
+  primaryLight: '#E8F5E9',
+  secondary: '#F9A825',
+  secondaryLight: '#FFF8E1',
+  text: '#374151',
+  textLight: '#6B7280',
+  white: '#FFFFFF',
+  dark: '#1F2937',
+  error: '#DC2626',
+  success: '#10B981',
+};
 
 export default function ProviderHomeScreen({ navigation }) {
-  // ✅ FIXED: added logout here
-  const { user, logout } = useAuth();
-  
-  if (!user) return null;
-
-  const [isOnline,    setIsOnline]    = useState(false);
-  const [offeredJobs, setOfferedJobs] = useState([]);
-  const [avgRating,   setAvgRating]   = useState(0);
-  const [loading,     setLoading]     = useState(true);
-  const [toggling,    setToggling]    = useState(false);
-  const [refreshing,  setRefreshing]  = useState(false);
-
-  // Safe logout handler
-  const handleLogout = () => {
-    if (logout) {
-      logout();
-    } else {
-      Alert.alert('Error', 'Logout function not available');
-    }
-  };
+  const { user } = useAuth();
+  const { t, theme } = useSettings();
+  const [isOnline, setIsOnline] = useState(false);
+  const [stats, setStats] = useState({ offered: 0, accepted: 0, completed: 0 });
+  const [loading, setLoading] = useState(true);
+  const [toggling, setToggling] = useState(false);
+  const [location, setLocation] = useState(null);
 
   useFocusEffect(
-    useCallback(() => { loadData(); }, [])
+    useCallback(() => {
+      loadStats();
+      getLocation();
+    }, [])
   );
 
-  async function loadData() {
+  async function getLocation() {
     try {
-      const jobsData = await requestAPI.getOffered();
-      setOfferedJobs(jobsData.jobs || []);
-
-      const reviewsData = await reviewAPI.getForProvider(user.id);
-      setAvgRating(reviewsData.avg_rating || 0);
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const loc = await Location.getCurrentPositionAsync({});
+        setLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+      }
     } catch (err) {
-      console.log('Load error:', err.message);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      console.log('Location error:', err);
     }
   }
 
-  async function handleToggleStatus() {
+  async function loadStats() {
+    try {
+      const offered = await requestAPI.getOffered();
+      const accepted = await requestAPI.getMyRequests ? await requestAPI.getMyRequests() : { requests: [] };
+      setStats({
+        offered: offered.jobs?.length || 0,
+        accepted: accepted.requests?.filter(r => r.status === 'assigned').length || 0,
+        completed: accepted.requests?.filter(r => r.status === 'completed').length || 0,
+      });
+    } catch (err) {
+      console.log('Error loading stats:', err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function toggleOnlineStatus() {
+    if (!location) {
+      Alert.alert('Location Required', 'Please enable GPS to go online');
+      return;
+    }
+    
     setToggling(true);
     try {
-      let body = {};
-
-      if (!isOnline) {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          Alert.alert('Location Required', 'Please enable location to go online');
-          return;
-        }
-        const loc = await Location.getCurrentPositionAsync({});
-        body = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
-      }
-
-      const data = await providerAPI.toggleStatus(body);
+      const data = await providerAPI.toggleStatus({
+        latitude: location.latitude,
+        longitude: location.longitude
+      });
       setIsOnline(data.is_online);
       Alert.alert('Status Updated', data.message);
-
     } catch (err) {
       Alert.alert('Error', err.message);
     } finally {
@@ -85,114 +93,107 @@ export default function ProviderHomeScreen({ navigation }) {
     }
   }
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#10b981" />
-      </View>
-    );
-  }
+  const isDark = theme === 'dark';
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
+    <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#F9FAFB' }]}>
+      <ScrollView 
         contentContainerStyle={styles.inner}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => {
-            setRefreshing(true);
-            loadData();
-          }} />
-        }
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={loadStats} />}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>Hello, {user.name.split(' ')[0]} 👷</Text>
-            <Text style={styles.subtitle}>Provider Dashboard</Text>
-          </View>
-          {/* ✅ FIXED: using safe logout handler */}
-          <TouchableOpacity onPress={handleLogout}>
-            <Text style={styles.logoutText}>Logout</Text>
-          </TouchableOpacity>
+        {/* Welcome Header */}
+        <View style={styles.welcomeSection}>
+          <Text style={[styles.welcomeText, { color: isDark ? '#FFF' : BRAND.text }]}>
+            Welcome back, 👋
+          </Text>
+          <Text style={[styles.providerName, { color: BRAND.primary }]}>
+            {user?.name?.split(' ')[0] || 'Provider'}
+          </Text>
+          <Text style={[styles.roleBadge, { backgroundColor: BRAND.primaryLight, color: BRAND.primary }]}>
+            👷 Service Provider
+          </Text>
         </View>
 
-        {/* Online/Offline toggle card */}
-        <View style={[styles.statusCard, isOnline ? styles.statusCardOnline : styles.statusCardOffline]}>
-          <View>
-            <Text style={styles.statusLabel}>Current Status</Text>
-            <Text style={styles.statusValue}>
-              {isOnline ? '🟢 ONLINE' : '🔴 OFFLINE'}
-            </Text>
-            <Text style={styles.statusDesc}>
-              {isOnline
-                ? 'You are visible to seekers and receiving jobs'
-                : 'You are hidden. Go online to receive jobs'}
+        {/* Online Status Card */}
+        <View style={[styles.statusCard, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
+          <View style={styles.statusRow}>
+            <Text style={[styles.statusLabel, { color: isDark ? '#FFF' : BRAND.text }]}>Current Status</Text>
+            <View style={[styles.statusDot, { backgroundColor: isOnline ? BRAND.success : BRAND.error }]} />
+            <Text style={[styles.statusValue, { color: isOnline ? BRAND.success : BRAND.error }]}>
+              {isOnline ? '● ONLINE' : '● OFFLINE'}
             </Text>
           </View>
+          
           <TouchableOpacity
-            style={[styles.toggleBtn, isOnline ? styles.toggleBtnOff : styles.toggleBtnOn]}
-            onPress={handleToggleStatus}
+            style={[styles.toggleBtn, { backgroundColor: isOnline ? BRAND.error : BRAND.primary }]}
+            onPress={toggleOnlineStatus}
             disabled={toggling}
           >
-            {toggling
-              ? <ActivityIndicator color="#fff" size="small" />
-              : <Text style={styles.toggleBtnText}>
-                  {isOnline ? 'Go Offline' : 'Go Online'}
-                </Text>
-            }
+            {toggling ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Text style={styles.toggleBtnText}>
+                {isOnline ? 'Go Offline' : 'Go Online'}
+              </Text>
+            )}
+          </TouchableOpacity>
+          
+          <Text style={[styles.statusHint, { color: isDark ? '#AAA' : BRAND.textLight }]}>
+            {isOnline 
+              ? '✅ You are visible to seekers within 10km' 
+              : '⏸️ Go online to receive job offers'}
+          </Text>
+        </View>
+
+        {/* Stats Grid */}
+        <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : BRAND.text }]}>Your Dashboard</Text>
+        <View style={styles.statsGrid}>
+          <View style={[styles.statCard, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
+            <Text style={styles.statIcon}>📋</Text>
+            <Text style={[styles.statNumber, { color: BRAND.primary }]}>{stats.offered}</Text>
+            <Text style={[styles.statLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>Offered Jobs</Text>
+          </View>
+          <View style={[styles.statCard, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
+            <Text style={styles.statIcon}>✅</Text>
+            <Text style={[styles.statNumber, { color: BRAND.primary }]}>{stats.accepted}</Text>
+            <Text style={[styles.statLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>Accepted Jobs</Text>
+          </View>
+          <View style={[styles.statCard, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
+            <Text style={styles.statIcon}>🏁</Text>
+            <Text style={[styles.statNumber, { color: BRAND.primary }]}>{stats.completed}</Text>
+            <Text style={[styles.statLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>Completed</Text>
+          </View>
+        </View>
+
+        {/* Quick Actions */}
+        <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : BRAND.text }]}>Quick Actions</Text>
+        <View style={styles.actionGrid}>
+          <TouchableOpacity 
+            style={[styles.actionCard, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}
+            onPress={() => navigation.navigate('OfferedJobs')}
+          >
+            <Text style={styles.actionIcon}>📋</Text>
+            <Text style={[styles.actionLabel, { color: isDark ? '#FFF' : BRAND.text }]}>View Offered Jobs</Text>
+            <Text style={[styles.actionBadge, { backgroundColor: BRAND.primary, color: BRAND.white }]}>
+              {stats.offered}
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.actionCard, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}
+            onPress={() => navigation.navigate('AcceptedJobs')}
+          >
+            <Text style={styles.actionIcon}>✅</Text>
+            <Text style={[styles.actionLabel, { color: isDark ? '#FFF' : BRAND.text }]}>My Accepted Jobs</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Stats row */}
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{offeredJobs.length}</Text>
-            <Text style={styles.statLabel}>New Jobs</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>⭐ {avgRating.toFixed(1)}</Text>
-            <Text style={styles.statLabel}>Your Rating</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>ETB 20</Text>
-            <Text style={styles.statLabel}>Per Job Fee</Text>
-          </View>
-        </View>
-
-        {/* Quick actions */}
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
-
-        <TouchableOpacity
-          style={styles.actionCard}
-          onPress={() => navigation.navigate('OfferedJobs')}
-        >
-          <Text style={styles.actionIcon}>📋</Text>
-          <View style={styles.actionInfo}>
-            <Text style={styles.actionTitle}>View Offered Jobs</Text>
-            <Text style={styles.actionDesc}>{offeredJobs.length} job(s) waiting for your response</Text>
-          </View>
-          <Text style={styles.actionArrow}>→</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.actionCard}
-          onPress={() => navigation.navigate('AcceptedJobs')}
-        >
-          <Text style={styles.actionIcon}>✅</Text>
-          <View style={styles.actionInfo}>
-            <Text style={styles.actionTitle}>My Accepted Jobs</Text>
-            <Text style={styles.actionDesc}>View and manage your active jobs</Text>
-          </View>
-          <Text style={styles.actionArrow}>→</Text>
-        </TouchableOpacity>
-
-        {/* Info box */}
-        <View style={styles.infoBox}>
-          <Text style={styles.infoTitle}>💡 How it works</Text>
-          <Text style={styles.infoText}>1. Go online to receive job notifications</Text>
-          <Text style={styles.infoText}>2. Review and accept offered jobs</Text>
-          <Text style={styles.infoText}>3. Pay 20 ETB to unlock seeker contact</Text>
-          <Text style={styles.infoText}>4. Complete the job and get reviewed</Text>
+        {/* Tips Card */}
+        <View style={[styles.tipsCard, { backgroundColor: BRAND.secondaryLight, borderLeftColor: BRAND.secondary }]}>
+          <Text style={[styles.tipsTitle, { color: '#92400E' }]}>💡 Pro Tip</Text>
+          <Text style={[styles.tipsText, { color: '#92400E' }]}>
+            Stay online to receive job offers. The closer you are to the seeker's location, the higher your chance of getting matched!
+          </Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -200,35 +201,32 @@ export default function ProviderHomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container:        { flex: 1, backgroundColor: '#f9fafb' },
-  center:           { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  inner:            { padding: 20, gap: 16 },
-  header:           { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  greeting:         { fontSize: 22, fontWeight: 'bold', color: '#111' },
-  subtitle:         { fontSize: 14, color: '#6b7280' },
-  logoutText:       { color: '#ef4444', fontWeight: '600' },
-  statusCard:       { borderRadius: 16, padding: 20, gap: 12 },
-  statusCardOnline: { backgroundColor: '#d1fae5', borderWidth: 1, borderColor: '#10b981' },
-  statusCardOffline:{ backgroundColor: '#fee2e2', borderWidth: 1, borderColor: '#ef4444' },
-  statusLabel:      { fontSize: 12, color: '#6b7280', marginBottom: 4 },
-  statusValue:      { fontSize: 20, fontWeight: 'bold', color: '#111', marginBottom: 4 },
-  statusDesc:       { fontSize: 13, color: '#374151' },
-  toggleBtn:        { borderRadius: 12, paddingVertical: 12, paddingHorizontal: 20, alignItems: 'center' },
-  toggleBtnOn:      { backgroundColor: '#10b981' },
-  toggleBtnOff:     { backgroundColor: '#ef4444' },
-  toggleBtnText:    { color: '#fff', fontWeight: 'bold', fontSize: 15 },
-  statsRow:         { flexDirection: 'row', gap: 10 },
-  statCard:         { flex: 1, backgroundColor: '#fff', borderRadius: 12, padding: 14, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
-  statNumber:       { fontSize: 18, fontWeight: 'bold', color: '#111', marginBottom: 4 },
-  statLabel:        { fontSize: 11, color: '#6b7280', textAlign: 'center' },
-  sectionTitle:     { fontSize: 16, fontWeight: '600', color: '#374151' },
-  actionCard:       { backgroundColor: '#fff', borderRadius: 14, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
-  actionIcon:       { fontSize: 28 },
-  actionInfo:       { flex: 1 },
-  actionTitle:      { fontSize: 15, fontWeight: '600', color: '#111' },
-  actionDesc:       { fontSize: 12, color: '#6b7280', marginTop: 2 },
-  actionArrow:      { fontSize: 18, color: '#9ca3af' },
-  infoBox:          { backgroundColor: '#eff6ff', borderRadius: 12, padding: 16, gap: 6 },
-  infoTitle:        { fontSize: 14, fontWeight: '600', color: '#1a56db', marginBottom: 4 },
-  infoText:         { fontSize: 13, color: '#374151' },
+  container: { flex: 1 },
+  inner: { padding: 20, gap: 20 },
+  welcomeSection: { marginBottom: 8 },
+  welcomeText: { fontSize: 16, marginBottom: 4 },
+  providerName: { fontSize: 24, fontWeight: 'bold', marginBottom: 8 },
+  roleBadge: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20, fontSize: 12, fontWeight: '600' },
+  statusCard: { borderRadius: 16, padding: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
+  statusRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  statusLabel: { fontSize: 15, fontWeight: '600', flex: 1 },
+  statusDot: { width: 10, height: 10, borderRadius: 5, marginRight: 6 },
+  statusValue: { fontSize: 14, fontWeight: '600' },
+  toggleBtn: { borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginBottom: 12 },
+  toggleBtnText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
+  statusHint: { fontSize: 12, textAlign: 'center' },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
+  statsGrid: { flexDirection: 'row', gap: 12 },
+  statCard: { flex: 1, borderRadius: 12, padding: 14, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
+  statIcon: { fontSize: 28, marginBottom: 8 },
+  statNumber: { fontSize: 22, fontWeight: 'bold', marginBottom: 4 },
+  statLabel: { fontSize: 12 },
+  actionGrid: { gap: 12 },
+  actionCard: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
+  actionIcon: { fontSize: 28, marginRight: 16 },
+  actionLabel: { flex: 1, fontSize: 15, fontWeight: '500' },
+  actionBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, fontSize: 12, fontWeight: 'bold' },
+  tipsCard: { borderRadius: 12, padding: 16, borderLeftWidth: 4 },
+  tipsTitle: { fontSize: 14, fontWeight: 'bold', marginBottom: 8 },
+  tipsText: { fontSize: 13, lineHeight: 18 },
 });

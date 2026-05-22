@@ -1,29 +1,44 @@
 // =============================================
 //  src/screens/OfferedJobsScreen.js
-//  UPDATED — Provider pays 20 ETB via Chapa
-//  FIXED: safe hooks, error handling
+//  BRAND COLORS: Ethiopian Green (#2E7D32) + Gold (#F9A825)
 // =============================================
 
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, FlatList, StyleSheet,
-  SafeAreaView, TouchableOpacity, Alert,
-  ActivityIndicator, RefreshControl, Linking
+  SafeAreaView, ActivityIndicator,
+  TouchableOpacity, Alert, RefreshControl,
+  Linking
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { requestAPI, paymentAPI } from '../api/client';
+import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 
-export default function OfferedJobsScreen({ navigation }) {
-  const [jobs,       setJobs]       = useState([]);
-  const [loading,    setLoading]    = useState(true);
+const BRAND = {
+  primary: '#2E7D32',
+  primaryDark: '#1B5E20',
+  primaryLight: '#E8F5E9',
+  secondary: '#F9A825',
+  secondaryLight: '#FFF8E1',
+  text: '#374151',
+  textLight: '#6B7280',
+  white: '#FFFFFF',
+  dark: '#1F2937',
+  error: '#DC2626',
+  success: '#10B981',
+};
+
+export default function OfferedJobsScreen() {
+  const { user } = useAuth();
+  const { t, theme } = useSettings();
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [acceptingId, setAcceptingId] = useState(null);
 
   useFocusEffect(
-    useCallback(() => {
-      loadJobs();
-      return () => {}; // cleanup (optional)
-    }, [])
+    useCallback(() => { loadJobs(); }, [])
   );
 
   async function loadJobs() {
@@ -31,7 +46,7 @@ export default function OfferedJobsScreen({ navigation }) {
       const data = await requestAPI.getOffered();
       setJobs(data.jobs || []);
     } catch (err) {
-      Alert.alert('Error', err.message || 'Failed to load offered jobs');
+      Alert.alert('Error', err.message);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -41,7 +56,7 @@ export default function OfferedJobsScreen({ navigation }) {
   async function handleAccept(assignmentId, requestId) {
     Alert.alert(
       'Accept Job?',
-      'After accepting, you will pay 20 ETB via Chapa to unlock the seeker\'s contact details.',
+      'You will need to pay 20 ETB service fee to unlock the seeker\'s contact details.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -49,52 +64,39 @@ export default function OfferedJobsScreen({ navigation }) {
           onPress: async () => {
             setAcceptingId(assignmentId);
             try {
-              // Step 1 — Accept the job assignment
-              await requestAPI.accept(assignmentId);
-
-              // Step 2 — Initiate 20 ETB Chapa payment
+              const data = await requestAPI.accept(assignmentId);
               const initData = await paymentAPI.initiate({
                 request_id: requestId,
                 payer_role: 'provider'
               });
 
               if (initData.payment_url) {
-                // Step 3 — Open Chapa checkout in browser
                 Linking.openURL(initData.payment_url);
-
-                // Step 4 — After 3 seconds ask if payment done
                 setTimeout(() => {
                   Alert.alert(
                     'Payment Complete?',
-                    'Did you complete the 20 ETB payment on Chapa?',
+                    'Did you complete the 20 ETB payment?',
                     [
                       { text: 'Not yet', style: 'cancel' },
                       {
                         text: 'Yes, verify',
                         onPress: async () => {
                           try {
-                            const verifyData = await paymentAPI.verify({
-                              tx_ref: initData.tx_ref
-                            });
-                            const contact = verifyData.unlocked_contact;
+                            const verifyData = await paymentAPI.verify({ tx_ref: initData.tx_ref });
                             Alert.alert(
                               '✅ Payment Successful!',
-                              `Seeker Contact Unlocked!\n\n👤 Name: ${contact?.seeker_name}\n📞 Phone: ${contact?.seeker_phone}\n\nCall them to confirm the job details!`
+                              `Seeker Contact Unlocked!\n\n👤 ${verifyData.unlocked_contact?.seeker_name}\n📞 ${verifyData.unlocked_contact?.seeker_phone}`
                             );
                             loadJobs();
                           } catch (err) {
-                            Alert.alert('Verification Error', err.message);
+                            Alert.alert('Error', err.message);
                           }
                         }
                       }
                     ]
                   );
                 }, 3000);
-
-              } else {
-                Alert.alert('Error', 'Could not get payment URL from Chapa');
               }
-
             } catch (err) {
               Alert.alert('Error', err.message);
             } finally {
@@ -109,17 +111,16 @@ export default function OfferedJobsScreen({ navigation }) {
   async function handleReject(assignmentId) {
     Alert.alert(
       'Reject Job?',
-      'Are you sure you want to reject this job?',
+      'Are you sure you want to reject this offer?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Reject',
-          style: 'destructive',
+          text: 'Yes, Reject',
           onPress: async () => {
             try {
               await requestAPI.reject(assignmentId);
-              Alert.alert('Job Rejected', 'You have rejected this job.');
               loadJobs();
+              Alert.alert('Rejected', 'Job offer has been declined');
             } catch (err) {
               Alert.alert('Error', err.message);
             }
@@ -131,107 +132,125 @@ export default function OfferedJobsScreen({ navigation }) {
 
   function renderJob({ item }) {
     const isAccepting = acceptingId === item.assignment_id;
+    
     return (
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: theme === 'dark' ? '#1E1E1E' : BRAND.white }]}>
         <View style={styles.cardHeader}>
-          <Text style={styles.category}>{item.category}</Text>
-          <View style={styles.distanceBadge}>
-            <Text style={styles.distanceText}>📍 {item.distance_km} km</Text>
+          <View>
+            <Text style={[styles.category, { color: BRAND.primary }]}>{item.category}</Text>
+            <Text style={[styles.distance, { color: BRAND.secondary }]}>📍 {item.distance_km} km away</Text>
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: BRAND.secondaryLight }]}>
+            <Text style={[styles.statusText, { color: BRAND.secondary }]}>Offered</Text>
           </View>
         </View>
-        <Text style={styles.description} numberOfLines={3}>
+        
+        <Text style={[styles.description, { color: theme === 'dark' ? '#CCC' : BRAND.text }]} numberOfLines={3}>
           {item.description}
         </Text>
-        <Text style={styles.seekerName}>👤 {item.seeker_name}</Text>
-        <Text style={styles.date}>
-          Posted: {new Date(item.created_at).toLocaleString('en-GB', {
-            day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
-          })}
-        </Text>
-        <View style={styles.feeNotice}>
-          <Text style={styles.feeText}>💳 Accepting costs 20 ETB service fee via Chapa</Text>
+        
+        <View style={styles.seekerInfo}>
+          <Text style={styles.seekerIcon}>👤</Text>
+          <Text style={[styles.seekerName, { color: theme === 'dark' ? '#CCC' : BRAND.text }]}>{item.seeker_name}</Text>
         </View>
-        <View style={styles.btnRow}>
-          <TouchableOpacity
-            style={styles.rejectBtn}
-            onPress={() => handleReject(item.assignment_id)}
-            disabled={isAccepting}
-          >
-            <Text style={styles.rejectBtnText}>❌ Reject</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.acceptBtn, isAccepting && { opacity: 0.7 }]}
+        
+        <View style={styles.actionRow}>
+          <TouchableOpacity 
+            style={[styles.acceptBtn, { backgroundColor: BRAND.primary }]}
             onPress={() => handleAccept(item.assignment_id, item.request_id)}
             disabled={isAccepting}
           >
-            {isAccepting
-              ? <ActivityIndicator color="#fff" size="small" />
-              : <Text style={styles.acceptBtnText}>✅ Accept & Pay</Text>
-            }
+            {isAccepting ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Text style={styles.acceptBtnText}>Accept & Pay 20 ETB</Text>
+            )}
           </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.rejectBtn, { backgroundColor: theme === 'dark' ? '#2C2C2C' : '#F3F4F6' }]}
+            onPress={() => handleReject(item.assignment_id)}
+          >
+            <Text style={[styles.rejectBtnText, { color: BRAND.error }]}>Reject</Text>
+          </TouchableOpacity>
+        </View>
+        
+        <View style={[styles.feeNote, { backgroundColor: BRAND.secondaryLight }]}>
+          <Text style={[styles.feeNoteText, { color: '#92400E' }]}>💰 20 ETB fee applies on acceptance</Text>
         </View>
       </View>
     );
   }
 
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: theme === 'dark' ? '#121212' : '#F9FAFB' }]}>
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: theme === 'dark' ? '#FFF' : BRAND.text }]}>Offered Jobs</Text>
+        </View>
+        <ActivityIndicator size="large" color={BRAND.primary} style={{ marginTop: 40 }} />
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme === 'dark' ? '#121212' : '#F9FAFB' }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Offered Jobs</Text>
-        <Text style={styles.count}>{jobs.length} available</Text>
+        <Text style={[styles.title, { color: theme === 'dark' ? '#FFF' : BRAND.text }]}>Offered Jobs</Text>
+        <Text style={[styles.subtitle, { color: theme === 'dark' ? '#AAA' : BRAND.textLight }]}>
+          {jobs.length} job(s) available near you
+        </Text>
       </View>
-      {loading ? (
-        <ActivityIndicator size="large" color="#10b981" style={{ marginTop: 40 }} />
-      ) : (
-        <FlatList
-          data={jobs}
-          renderItem={renderJob}
-          keyExtractor={(item) => item.assignment_id.toString()}
-          contentContainerStyle={styles.list}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={() => {
-              setRefreshing(true);
-              loadJobs();
-            }} />
-          }
-          ListEmptyComponent={
-            <View style={styles.empty}>
-              <Text style={styles.emptyIcon}>📭</Text>
-              <Text style={styles.emptyTitle}>No jobs offered yet</Text>
-              <Text style={styles.emptyDesc}>
-                Make sure you are online to receive job notifications!
-              </Text>
-            </View>
-          }
-        />
-      )}
+
+      <FlatList
+        data={jobs}
+        renderItem={renderJob}
+        keyExtractor={(item) => item.assignment_id.toString()}
+        contentContainerStyle={styles.list}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => {
+            setRefreshing(true);
+            loadJobs();
+          }} />
+        }
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <Text style={styles.emptyIcon}>📋</Text>
+            <Text style={[styles.emptyTitle, { color: theme === 'dark' ? '#FFF' : BRAND.text }]}>No offered jobs</Text>
+            <Text style={[styles.emptyDesc, { color: theme === 'dark' ? '#AAA' : BRAND.textLight }]}>
+              Go online to receive job offers from nearby seekers
+            </Text>
+          </View>
+        }
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container:     { flex: 1, backgroundColor: '#f9fafb' },
-  header:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
-  title:         { fontSize: 22, fontWeight: 'bold', color: '#111' },
-  count:         { fontSize: 14, color: '#6b7280' },
-  list:          { padding: 16 },
-  card:          { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
-  cardHeader:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  category:      { fontSize: 16, fontWeight: 'bold', color: '#111' },
-  distanceBadge: { backgroundColor: '#eff6ff', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  distanceText:  { fontSize: 12, color: '#1a56db', fontWeight: '600' },
-  description:   { fontSize: 14, color: '#374151', lineHeight: 20, marginBottom: 8 },
-  seekerName:    { fontSize: 13, color: '#6b7280', marginBottom: 4 },
-  date:          { fontSize: 12, color: '#9ca3af', marginBottom: 10 },
-  feeNotice:     { backgroundColor: '#fef3c7', borderRadius: 8, padding: 8, marginBottom: 12 },
-  feeText:       { fontSize: 12, color: '#92400e' },
-  btnRow:        { flexDirection: 'row', gap: 10 },
-  rejectBtn:     { flex: 1, borderWidth: 1.5, borderColor: '#ef4444', borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
-  rejectBtnText: { color: '#ef4444', fontWeight: '600', fontSize: 14 },
-  acceptBtn:     { flex: 1, backgroundColor: '#10b981', borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
-  acceptBtnText: { color: '#fff', fontWeight: '600', fontSize: 14 },
-  empty:         { alignItems: 'center', marginTop: 60 },
-  emptyIcon:     { fontSize: 48, marginBottom: 12 },
-  emptyTitle:    { fontSize: 18, fontWeight: 'bold', color: '#374151', marginBottom: 4 },
-  emptyDesc:     { fontSize: 14, color: '#9ca3af', textAlign: 'center', paddingHorizontal: 20 },
+  container: { flex: 1 },
+  header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
+  title: { fontSize: 24, fontWeight: 'bold' },
+  subtitle: { fontSize: 14, marginTop: 4 },
+  list: { padding: 16, gap: 12 },
+  card: { borderRadius: 16, padding: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  category: { fontSize: 16, fontWeight: 'bold' },
+  distance: { fontSize: 12, marginTop: 2 },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  statusText: { fontSize: 11, fontWeight: '600' },
+  description: { fontSize: 14, lineHeight: 20, marginBottom: 12 },
+  seekerInfo: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 },
+  seekerIcon: { fontSize: 16 },
+  seekerName: { fontSize: 13, fontWeight: '500' },
+  actionRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
+  acceptBtn: { flex: 2, borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
+  acceptBtnText: { color: '#FFF', fontSize: 14, fontWeight: '600' },
+  rejectBtn: { flex: 1, borderRadius: 10, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB' },
+  rejectBtnText: { fontSize: 14, fontWeight: '600' },
+  feeNote: { borderRadius: 8, padding: 8, alignItems: 'center' },
+  feeNoteText: { fontSize: 11 },
+  empty: { alignItems: 'center', paddingVertical: 60 },
+  emptyIcon: { fontSize: 48, marginBottom: 16, opacity: 0.5 },
+  emptyTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 8 },
+  emptyDesc: { fontSize: 14, textAlign: 'center', paddingHorizontal: 40 },
 });
