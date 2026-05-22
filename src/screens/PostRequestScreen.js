@@ -1,8 +1,7 @@
 // =============================================
 //  src/screens/PostRequestScreen.js
 //  Seeker fills out a form to post a job request.
-//  Gets GPS automatically, lets user pick category.
-//  FIXED: added safe navigation check
+//  UPDATED: Accepts subcategory from HomeScreen
 // =============================================
 
 import React, { useState, useEffect } from 'react';
@@ -13,7 +12,7 @@ import {
 } from 'react-native';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
-import { requestAPI } from '../api/client';
+import { requestAPI, subcategoryAPI } from '../api/client';
 
 const ICON_MAP = {
   wrench: '🔧', zap: '⚡', droplet: '💧', book: '📚',
@@ -22,9 +21,13 @@ const ICON_MAP = {
 
 export default function PostRequestScreen({ navigation, route }) {
   const preselectedCategory = route.params?.category || null;
+  const preselectedSubcategory = route.params?.subcategory_name || null;
+  const preselectedCategoryId = route.params?.category_id || null;
+  const preselectedSubcategoryId = route.params?.subcategory_id || null;
 
   const [categories,   setCategories]   = useState([]);
-  const [selectedCat,  setSelectedCat]  = useState(preselectedCategory);
+  const [selectedCat,  setSelectedCat]  = useState(null);
+  const [selectedSubcat, setSelectedSubcat] = useState(null);
   const [description,  setDescription]  = useState('');
   const [photoUri,     setPhotoUri]     = useState(null);
   const [location,     setLocation]     = useState(null);
@@ -34,6 +37,14 @@ export default function PostRequestScreen({ navigation, route }) {
   useEffect(() => {
     loadCategories();
     getLocation();
+    
+    // Set preselected values if coming from HomeScreen
+    if (preselectedCategoryId && preselectedSubcategoryId) {
+      setSelectedCat({ id: preselectedCategoryId, name: route.params?.category_name });
+      setSelectedSubcat({ id: preselectedSubcategoryId, name: preselectedSubcategory });
+    } else if (preselectedCategory) {
+      setSelectedCat(preselectedCategory);
+    }
   }, []);
 
   async function loadCategories() {
@@ -120,13 +131,26 @@ export default function PostRequestScreen({ navigation, route }) {
         <Text style={styles.title}>Post a Request 📋</Text>
         <Text style={styles.subtitle}>Tell us what you need help with</Text>
 
+        {/* Selected Category Display */}
+        {selectedCat && (
+          <View style={styles.selectedBox}>
+            <Text style={styles.selectedLabel}>Selected Service:</Text>
+            <Text style={styles.selectedValue}>
+              {selectedSubcat ? `${selectedCat.name} → ${selectedSubcat.name}` : selectedCat.name}
+            </Text>
+          </View>
+        )}
+
         <Text style={styles.label}>Service Category *</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catScroll}>
           {categories.map(cat => (
             <TouchableOpacity
               key={cat.id}
               style={[styles.catChip, selectedCat?.id === cat.id && styles.catChipActive]}
-              onPress={() => setSelectedCat(cat)}
+              onPress={() => {
+                setSelectedCat(cat);
+                setSelectedSubcat(null);
+              }}
             >
               <Text style={styles.catIcon}>{ICON_MAP[cat.icon] || '🔨'}</Text>
               <Text style={[styles.catText, selectedCat?.id === cat.id && styles.catTextActive]}>
@@ -192,6 +216,9 @@ const styles = StyleSheet.create({
   title:       { fontSize: 24, fontWeight: 'bold', color: '#111' },
   subtitle:    { fontSize: 14, color: '#6b7280', marginBottom: 4 },
   label:       { fontSize: 14, fontWeight: '600', color: '#374151' },
+  selectedBox: { backgroundColor: '#eff6ff', borderRadius: 12, padding: 12, marginBottom: 8 },
+  selectedLabel: { fontSize: 12, color: '#1a56db', marginBottom: 4 },
+  selectedValue: { fontSize: 16, fontWeight: '600', color: '#1a56db' },
   catScroll:   { marginBottom: 4 },
   catChip: {
     flexDirection: 'row', alignItems: 'center',

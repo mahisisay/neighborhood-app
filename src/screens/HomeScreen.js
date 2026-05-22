@@ -1,19 +1,18 @@
 // =============================================
 //  src/screens/HomeScreen.js
-//  Shows all service categories in a grid.
-//  Works in guest mode too — no login needed!
-//  UPDATED: Global theme & translations (SettingsContext)
+//  Shows all service categories with subcategory modal
+//  UPDATED: Subcategory selection with modal
 // =============================================
 
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
   StyleSheet, SafeAreaView, ActivityIndicator,
-  Alert
+  Alert, Modal, Pressable
 } from 'react-native';
-import { requestAPI } from '../api/client';
+import { requestAPI, subcategoryAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { useSettings } from '../context/SettingsContext'; // ✅ ADDED
+import { useSettings } from '../context/SettingsContext';
 
 // Map icon names from database to actual emojis
 const ICON_MAP = {
@@ -29,18 +28,15 @@ const ICON_MAP = {
 
 export default function HomeScreen({ navigation }) {
   const { user, logout } = useAuth();
-  const { t, theme } = useSettings(); // ✅ ADDED: translation & theme
+  const { t, theme } = useSettings();
   const [categories, setCategories] = useState([]);
-  const [loading,    setLoading]    = useState(true);
-
-  // Safe logout handler
-  const handleLogout = () => {
-    if (logout) {
-      logout();
-    } else {
-      Alert.alert(t('error'), t('logout_unavailable') || 'Logout function not available');
-    }
-  };
+  const [loading, setLoading] = useState(true);
+  
+  // Subcategory modal states
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [subcategories, setSubcategories] = useState([]);
+  const [loadingSubs, setLoadingSubs] = useState(false);
 
   useEffect(() => {
     loadCategories();
@@ -57,11 +53,28 @@ export default function HomeScreen({ navigation }) {
     }
   }
 
-  function handleCategoryPress(category) {
+  async function loadSubcategories(categoryId, categoryName) {
+    setLoadingSubs(true);
+    setSelectedCategory({ id: categoryId, name: categoryName });
+    setModalVisible(true);
+    
+    try {
+      const data = await subcategoryAPI.getByCategory(categoryId);
+      setSubcategories(data.subcategories || []);
+    } catch (err) {
+      console.log('Error loading subcategories:', err);
+      setSubcategories([]);
+    } finally {
+      setLoadingSubs(false);
+    }
+  }
+
+  function selectSubcategory(subcategory) {
+    setModalVisible(false);
     if (!user) {
       Alert.alert(
         t('login_required') || 'Login Required',
-        t('login_prompt') || 'Please login or create an account to post a service request.',
+        t('login_prompt') || 'Please login to post a service request.',
         [
           { text: t('cancel'), style: 'cancel' },
           { text: t('login'), onPress: () => navigation.navigate('Login') },
@@ -69,22 +82,49 @@ export default function HomeScreen({ navigation }) {
       );
       return;
     }
-    navigation.navigate('PostRequest', { category });
+    navigation.navigate('PostRequest', {
+      category_id: selectedCategory.id,
+      category_name: selectedCategory.name,
+      subcategory_id: subcategory.id,
+      subcategory_name: subcategory.name
+    });
   }
+
+  // Safe logout handler
+  const handleLogout = () => {
+    if (logout) {
+      logout();
+    } else {
+      Alert.alert(t('error'), t('logout_unavailable') || 'Logout function not available');
+    }
+  };
 
   function renderCategory({ item }) {
     return (
       <TouchableOpacity
         style={[styles.card, dynamicStyles.card]}
-        onPress={() => handleCategoryPress(item)}
+        onPress={() => loadSubcategories(item.id, item.name)}
       >
         <Text style={styles.cardIcon}>{ICON_MAP[item.icon] || '🔨'}</Text>
         <Text style={[styles.cardName, dynamicStyles.cardText]}>{item.name}</Text>
+        <Text style={styles.cardHint}>Tap to select →</Text>
       </TouchableOpacity>
     );
   }
 
-  // ✅ Dynamic styles based on theme
+  function renderSubcategory({ item }) {
+    return (
+      <TouchableOpacity
+        style={styles.subCard}
+        onPress={() => selectSubcategory(item)}
+      >
+        <Text style={styles.subIcon}>{item.icon || '🔧'}</Text>
+        <Text style={styles.subName}>{item.name}</Text>
+      </TouchableOpacity>
+    );
+  }
+
+  // Dynamic styles based on theme
   const dynamicStyles = {
     container: { backgroundColor: theme === 'dark' ? '#121212' : '#f9fafb' },
     header: {
@@ -100,6 +140,10 @@ export default function HomeScreen({ navigation }) {
     sectionTitle: { color: theme === 'dark' ? '#ccc' : '#374151' },
     card: { backgroundColor: theme === 'dark' ? '#2c2c2c' : '#fff' },
     cardName: { color: theme === 'dark' ? '#eee' : '#374151' },
+    modalContent: { backgroundColor: theme === 'dark' ? '#1e1e1e' : '#fff' },
+    modalTitle: { color: theme === 'dark' ? '#fff' : '#111' },
+    subCard: { backgroundColor: theme === 'dark' ? '#2c2c2c' : '#f3f4f6' },
+    subName: { color: theme === 'dark' ? '#eee' : '#374151' },
   };
 
   return (
@@ -120,10 +164,10 @@ export default function HomeScreen({ navigation }) {
               <Text style={[styles.mapBtnText, dynamicStyles.mapBtnText]}>🗺️ {t('map')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.mapBtn, dynamicStyles.logoutBtn, { backgroundColor: '#fee2e2' }]}
+              style={[styles.mapBtn, dynamicStyles.logoutBtn]}
               onPress={handleLogout}
             >
-              <Text style={[styles.mapBtnText, dynamicStyles.logoutText, { color: '#ef4444' }]}>{t('logout')}</Text>
+              <Text style={[styles.mapBtnText, dynamicStyles.logoutText]}>{t('logout')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -144,6 +188,49 @@ export default function HomeScreen({ navigation }) {
           }
         />
       )}
+
+      {/* Subcategory Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, dynamicStyles.modalContent]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, dynamicStyles.modalTitle]}>
+                {selectedCategory?.name || 'Services'}
+              </Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            
+            <Text style={styles.modalSubtitle}>
+              Select a specific service
+            </Text>
+
+            {loadingSubs ? (
+              <ActivityIndicator size="large" color="#1a56db" style={{ marginTop: 40 }} />
+            ) : subcategories.length === 0 ? (
+              <View style={styles.emptySubs}>
+                <Text style={styles.emptyIcon}>🔧</Text>
+                <Text style={styles.emptyText}>No subcategories found</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={subcategories}
+                renderItem={renderSubcategory}
+                keyExtractor={(item) => item.id.toString()}
+                numColumns={2}
+                columnWrapperStyle={styles.subRow}
+                showsVerticalScrollIndicator={false}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -172,5 +259,33 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06, shadowRadius: 8, elevation: 3,
   },
   cardIcon: { fontSize: 36, marginBottom: 10 },
-  cardName: { fontSize: 13, fontWeight: '600', textAlign: 'center' },
+  cardName: { fontSize: 13, fontWeight: '600', textAlign: 'center', marginBottom: 4 },
+  cardHint: { fontSize: 10, color: '#9ca3af', textAlign: 'center' },
+  
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalContent: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    maxHeight: '80%',
+  },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  modalTitle: { fontSize: 22, fontWeight: 'bold' },
+  modalClose: { fontSize: 24, fontWeight: '600', color: '#9ca3af', padding: 8 },
+  modalSubtitle: { fontSize: 14, color: '#6b7280', marginBottom: 20 },
+  subRow: { justifyContent: 'space-between', marginBottom: 12 },
+  subCard: {
+    borderRadius: 12,
+    padding: 14,
+    width: '48%',
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  subIcon: { fontSize: 20 },
+  subName: { fontSize: 13, fontWeight: '500', textAlign: 'center' },
+  emptySubs: { alignItems: 'center', paddingVertical: 40 },
+  emptyIcon: { fontSize: 48, marginBottom: 12, opacity: 0.5 },
+  emptyText: { fontSize: 16, color: '#9ca3af' },
 });
