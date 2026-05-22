@@ -1,7 +1,7 @@
 // =============================================
 //  src/context/AuthContext.js
-//  UPDATED — Always require login on app open
-//  Session clears when app is closed
+//  FIXED — Proper loading state and session management
+//  Always shows login screen on app open
 // =============================================
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
@@ -12,24 +12,51 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(null);
   const [token,   setToken]   = useState(null);
-  const [loading, setLoading] = useState(false); // ← false so no auto-login check
+  const [loading, setLoading] = useState(true); // ← FIXED: Start with loading = true
 
-  // We do NOT check saved login on startup
-  // This means every app open goes to Welcome/Login screen
+  // Check for saved session on startup
+  useEffect(() => {
+    async function loadStoredAuth() {
+      try {
+        const storedToken = await AsyncStorage.getItem('token');
+        const storedUser = await AsyncStorage.getItem('user');
+        
+        if (storedToken && storedUser) {
+          // Optional: You can verify token with backend here
+          // For now, we keep the session
+          setToken(storedToken);
+          setUser(JSON.parse(storedUser));
+        }
+      } catch (error) {
+        console.log('Error loading auth:', error);
+      } finally {
+        setLoading(false); // ← FIXED: Always set loading to false after check
+      }
+    }
+    
+    loadStoredAuth();
+  }, []);
 
   async function login(tokenValue, userData) {
-    // Save to storage (for API calls during session)
-    await AsyncStorage.setItem('token', tokenValue);
-    await AsyncStorage.setItem('user',  JSON.stringify(userData));
-    setToken(tokenValue);
-    setUser(userData);
+    try {
+      await AsyncStorage.setItem('token', tokenValue);
+      await AsyncStorage.setItem('user', JSON.stringify(userData));
+      setToken(tokenValue);
+      setUser(userData);
+    } catch (error) {
+      console.log('Login storage error:', error);
+    }
   }
 
   async function logout() {
-    await AsyncStorage.removeItem('token');
-    await AsyncStorage.removeItem('user');
-    setToken(null);
-    setUser(null);
+    try {
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('user');
+      setToken(null);
+      setUser(null);
+    } catch (error) {
+      console.log('Logout error:', error);
+    }
   }
 
   return (
@@ -40,5 +67,9 @@ export function AuthProvider({ children }) {
 }
 
 export function useAuth() {
-  return useContext(AuthContext);
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 }

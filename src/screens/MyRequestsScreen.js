@@ -1,6 +1,6 @@
 // =============================================
-//  MyRequestsScreen.js — Updated with real Chapa
-//  FIXED: added logout from useAuth, safe logout handler
+//  MyRequestsScreen.js — COMPLETE FIX
+//  Fixed: navigation to PostRequest, logout handling
 // =============================================
 
 import React, { useState, useCallback } from 'react';
@@ -10,7 +10,7 @@ import {
   TouchableOpacity, Alert, RefreshControl,
   Linking
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { requestAPI, paymentAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 
@@ -22,23 +22,14 @@ const STATUS_CONFIG = {
   cancelled: { color: '#ef4444', bg: '#fee2e2', label: '❌ Cancelled', desc: 'Request cancelled' },
 };
 
-export default function MyRequestsScreen({ navigation }) {
-  // ✅ FIXED: added logout from useAuth
-  const { logout } = useAuth();
+export default function MyRequestsScreen() {
+  const navigation = useNavigation();
+  const { logout, user } = useAuth();
   
   const [requests,   setRequests]   = useState([]);
   const [loading,    setLoading]    = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [payingId,   setPayingId]   = useState(null);
-
-  // Safe logout handler (prevents crash if logout is missing)
-  const handleLogout = () => {
-    if (logout) {
-      logout();
-    } else {
-      Alert.alert('Error', 'Logout function not available');
-    }
-  };
 
   useFocusEffect(
     useCallback(() => { loadRequests(); }, [])
@@ -47,7 +38,7 @@ export default function MyRequestsScreen({ navigation }) {
   async function loadRequests() {
     try {
       const data = await requestAPI.getMyRequests();
-      setRequests(data.requests);
+      setRequests(data.requests || []);
     } catch (err) {
       Alert.alert('Error', err.message);
     } finally {
@@ -73,10 +64,8 @@ export default function MyRequestsScreen({ navigation }) {
               });
 
               if (initData.payment_url) {
-                // Open Chapa page
                 Linking.openURL(initData.payment_url);
 
-                // Wait 3 seconds then ask if paid
                 setTimeout(() => {
                   Alert.alert(
                     'Did you complete payment?',
@@ -154,45 +143,54 @@ export default function MyRequestsScreen({ navigation }) {
     );
   }
 
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>My Requests</Text>
+          <TouchableOpacity onPress={logout}>
+            <Text style={styles.logoutText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
+        <ActivityIndicator size="large" color="#1a56db" style={{ marginTop: 40 }} />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>My Requests</Text>
-        {/* ✅ FIXED: using safe logout handler */}
-        <TouchableOpacity onPress={handleLogout}>
+        <TouchableOpacity onPress={logout}>
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </View>
 
-      {loading ? (
-        <ActivityIndicator size="large" color="#1a56db" style={{ marginTop: 40 }} />
-      ) : (
-        <FlatList
-          data={requests}
-          renderItem={renderRequest}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.list}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={() => {
-              setRefreshing(true);
-              loadRequests();
-            }} />
-          }
-          ListEmptyComponent={
-            <View style={styles.empty}>
-              <Text style={styles.emptyIcon}>📋</Text>
-              <Text style={styles.emptyTitle}>No requests yet</Text>
-              <Text style={styles.emptyDesc}>Post your first service request!</Text>
-              <TouchableOpacity
-                style={styles.postBtn}
-                onPress={() => navigation.navigate('PostRequest', {})}
-              >
-                <Text style={styles.postBtnText}>Post a Request</Text>
-              </TouchableOpacity>
-            </View>
-          }
-        />
-      )}
+      <FlatList
+        data={requests}
+        renderItem={renderRequest}
+        keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
+        contentContainerStyle={styles.list}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => {
+            setRefreshing(true);
+            loadRequests();
+          }} />
+        }
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <Text style={styles.emptyIcon}>📋</Text>
+            <Text style={styles.emptyTitle}>No requests yet</Text>
+            <Text style={styles.emptyDesc}>Post your first service request!</Text>
+            <TouchableOpacity
+              style={styles.postBtn}
+              onPress={() => navigation.navigate('PostRequest')}
+            >
+              <Text style={styles.postBtnText}>Post a Request</Text>
+            </TouchableOpacity>
+          </View>
+        }
+      />
     </SafeAreaView>
   );
 }

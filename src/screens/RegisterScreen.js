@@ -1,10 +1,9 @@
 // =============================================
 //  src/screens/RegisterScreen.js
-//  Updated — providers must upload documents
-//  ADDED: back arrow, language toggle, theme, translations
+//  UPDATED: Added subcategory/service selection for providers
 // =============================================
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, SafeAreaView, Alert,
@@ -12,11 +11,11 @@ import {
   ActivityIndicator, ScrollView, Image
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { authAPI, loginForUpload, BASE_URL } from '../api/client';
-import { useSettings } from '../context/SettingsContext'; // ADDED
+import { authAPI, loginForUpload, BASE_URL, subcategoryAPI } from '../api/client';
+import { useSettings } from '../context/SettingsContext';
 
 export default function RegisterScreen({ navigation }) {
-  const { t, theme, language, updateLanguage } = useSettings(); // ADDED
+  const { t, theme, language, updateLanguage } = useSettings();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -25,6 +24,35 @@ export default function RegisterScreen({ navigation }) {
   const [idPhoto, setIdPhoto] = useState(null);
   const [certificate, setCertificate] = useState(null);
   const [loading, setLoading] = useState(false);
+  
+  // NEW: Subcategory selection states
+  const [subcategories, setSubcategories] = useState([]);
+  const [selectedServices, setSelectedServices] = useState([]);
+  const [loadingServices, setLoadingServices] = useState(false);
+  const [showServiceSelector, setShowServiceSelector] = useState(false);
+
+  // Load subcategories when role changes to provider
+  useEffect(() => {
+    if (role === 'provider') {
+      loadSubcategories();
+      setShowServiceSelector(true);
+    } else {
+      setShowServiceSelector(false);
+      setSelectedServices([]);
+    }
+  }, [role]);
+
+  async function loadSubcategories() {
+    setLoadingServices(true);
+    try {
+      const data = await subcategoryAPI.getAll();
+      setSubcategories(data.subcategories || []);
+    } catch (err) {
+      console.log('Error loading subcategories:', err);
+    } finally {
+      setLoadingServices(false);
+    }
+  }
 
   // Language toggle
   const toggleLanguage = () => {
@@ -37,6 +65,14 @@ export default function RegisterScreen({ navigation }) {
       quality: 0.7,
     });
     if (!result.canceled) setter(result.assets[0]);
+  }
+
+  function toggleService(subcategoryId) {
+    if (selectedServices.includes(subcategoryId)) {
+      setSelectedServices(selectedServices.filter(id => id !== subcategoryId));
+    } else {
+      setSelectedServices([...selectedServices, subcategoryId]);
+    }
   }
 
   async function uploadDocuments() {
@@ -62,6 +98,19 @@ export default function RegisterScreen({ navigation }) {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message);
+      
+      // Save selected services
+      if (selectedServices.length > 0) {
+        await fetch(`${BASE_URL}/api/subcategories/save-services`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ subcategory_ids: selectedServices })
+        });
+      }
+      
       return true;
     } catch (err) {
       console.error('Upload error:', err);
@@ -80,6 +129,10 @@ export default function RegisterScreen({ navigation }) {
     }
     if (role === 'provider' && !idPhoto) {
       Alert.alert(t('id_required'), t('upload_id'));
+      return;
+    }
+    if (role === 'provider' && selectedServices.length === 0) {
+      Alert.alert(t('service_required'), t('select_at_least_one_service'));
       return;
     }
 
@@ -107,6 +160,14 @@ export default function RegisterScreen({ navigation }) {
       setLoading(false);
     }
   }
+
+  // Group subcategories by category name
+  const groupedSubcategories = subcategories.reduce((groups, sub) => {
+    const catName = sub.category_name;
+    if (!groups[catName]) groups[catName] = [];
+    groups[catName].push(sub);
+    return groups;
+  }, {});
 
   // Dynamic styles based on theme
   const dynamicStyles = {
@@ -136,12 +197,21 @@ export default function RegisterScreen({ navigation }) {
     },
     uploadBtnDone: { borderColor: '#10b981', backgroundColor: theme === 'dark' ? '#1e3a5f' : '#f0fdf4' },
     uploadBtnText: { color: theme === 'dark' ? '#aaa' : '#6b7280' },
+    serviceBtn: {
+      backgroundColor: theme === 'dark' ? '#2c2c2c' : '#f3f4f6',
+    },
+    serviceBtnSelected: {
+      backgroundColor: '#1a56db',
+    },
+    serviceName: { color: theme === 'dark' ? '#ccc' : '#374151' },
+    serviceNameSelected: { color: '#fff' },
     noteBox: { backgroundColor: theme === 'dark' ? '#5c1e1e' : '#fef3c7', borderLeftColor: '#f59e0b' },
     noteText: { color: theme === 'dark' ? '#ffb3b3' : '#92400e' },
     btn: { backgroundColor: theme === 'dark' ? '#2563eb' : '#1a56db' },
     linkText: { color: theme === 'dark' ? '#aaa' : '#6b7280' },
     link: { color: theme === 'dark' ? '#60a5fa' : '#1a56db' },
     backBtnText: { color: theme === 'dark' ? '#60a5fa' : '#1a56db' },
+    categoryTitle: { color: theme === 'dark' ? '#60a5fa' : '#1a56db' },
   };
 
   return (
@@ -214,6 +284,42 @@ export default function RegisterScreen({ navigation }) {
 
           {role === 'provider' && (
             <>
+              <View style={[styles.divider, dynamicStyles.divider]} />
+              
+              {/* NEW: Service Selection Section */}
+              <Text style={[styles.sectionTitle, dynamicStyles.sectionTitle]}>{t('select_services')}</Text>
+              <Text style={[styles.sectionDesc, dynamicStyles.sectionDesc]}>{t('select_services_desc')}</Text>
+              
+              {loadingServices ? (
+                <ActivityIndicator size="large" color="#1a56db" style={{ marginVertical: 20 }} />
+              ) : (
+                Object.entries(groupedSubcategories).map(([categoryName, services]) => (
+                  <View key={categoryName} style={styles.categoryGroup}>
+                    <Text style={[styles.categoryTitle, dynamicStyles.categoryTitle]}>{categoryName}</Text>
+                    <View style={styles.servicesGrid}>
+                      {services.map(service => (
+                        <TouchableOpacity
+                          key={service.id}
+                          style={[
+                            styles.serviceBtn,
+                            dynamicStyles.serviceBtn,
+                            selectedServices.includes(service.id) && dynamicStyles.serviceBtnSelected
+                          ]}
+                          onPress={() => toggleService(service.id)}
+                        >
+                          <Text style={styles.serviceIcon}>{service.icon || '📌'}</Text>
+                          <Text style={[
+                            styles.serviceName,
+                            dynamicStyles.serviceName,
+                            selectedServices.includes(service.id) && dynamicStyles.serviceNameSelected
+                          ]}>{service.name}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                ))
+              )}
+              
               <View style={[styles.divider, dynamicStyles.divider]} />
               <Text style={[styles.sectionTitle, dynamicStyles.sectionTitle]}>{t('verification_docs')}</Text>
               <Text style={[styles.sectionDesc, dynamicStyles.sectionDesc]}>{t('admin_review_note')}</Text>
@@ -313,15 +419,21 @@ const styles = StyleSheet.create({
   roleText: { fontSize: 13, fontWeight: '600' },
   roleDesc: { fontSize: 11, marginTop: 2 },
   divider: { height: 1, marginVertical: 8 },
-  sectionTitle: { fontSize: 16, fontWeight: '700' },
-  sectionDesc: { fontSize: 13, lineHeight: 18 },
-  uploadBtn: { borderWidth: 2, borderStyle: 'dashed', borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
+  sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
+  sectionDesc: { fontSize: 13, lineHeight: 18, marginBottom: 12 },
+  categoryGroup: { marginBottom: 16 },
+  categoryTitle: { fontSize: 14, fontWeight: 'bold', marginBottom: 8 },
+  servicesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  serviceBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, marginRight: 8, marginBottom: 8 },
+  serviceIcon: { fontSize: 14 },
+  serviceName: { fontSize: 12 },
+  uploadBtn: { borderWidth: 2, borderStyle: 'dashed', borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginBottom: 12 },
   uploadBtnDone: { borderStyle: 'solid' },
   uploadBtnText: { fontSize: 15 },
   uploadedRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   thumbImage: { width: 40, height: 40, borderRadius: 6 },
   uploadedText: { fontWeight: '600' },
-  noteBox: { borderRadius: 10, padding: 12, borderLeftWidth: 4 },
+  noteBox: { borderRadius: 10, padding: 12, borderLeftWidth: 4, marginBottom: 8 },
   noteText: { fontSize: 13, lineHeight: 18 },
   btn: { borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
   btnText: { color: '#fff', fontSize: 17, fontWeight: 'bold' },

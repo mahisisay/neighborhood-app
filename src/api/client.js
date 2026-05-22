@@ -1,6 +1,6 @@
 // =============================================
 //  src/api/client.js — COMPLETE
-//  Includes all existing + new admin endpoints
+//  Includes all existing + admin + subcategories
 // =============================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -50,6 +50,14 @@ export const requestAPI = {
   reject:        (id)   => apiCall(`/api/requests/${id}/reject`, 'POST'),
 };
 
+// ── Subcategories ──────────────────────────────
+export const subcategoryAPI = {
+  getAll:          () => apiCall('/api/subcategories'),
+  getByCategory:   (id) => apiCall(`/api/subcategories/category/${id}`),
+  getMyServices:   () => apiCall('/api/subcategories/my-services'),
+  saveServices:    (subcategory_ids) => apiCall('/api/subcategories/save-services', 'POST', { subcategory_ids }),
+};
+
 // ── Providers ────────────────────────────────
 export const providerAPI = {
   getNearby:    (lat, lon) => apiCall(`/api/providers/nearby?lat=${lat}&lon=${lon}`),
@@ -71,15 +79,12 @@ export const reviewAPI = {
 
 // ── Admin ─────────────────────────────────────
 export const adminAPI = {
-  // Existing
-  getStats:       ()    => apiCall('/api/admin/stats'),
-  getPending:     ()    => apiCall('/api/admin/providers/pending'),
-  verifyProvider: (id)  => apiCall(`/api/admin/providers/${id}/verify`, 'PATCH'),
-  suspendUser:    (id)  => apiCall(`/api/admin/users/${id}/suspend`,    'PATCH'),
-  reactivateUser: (id)  => apiCall(`/api/admin/users/${id}/reactivate`, 'PATCH'),
-  getAllUsers:    ()    => apiCall('/api/admin/users'),
-
-  // NEW methods for AdminDashboardScreen
+  getStats:        ()    => apiCall('/api/admin/stats'),
+  getPending:      ()    => apiCall('/api/admin/providers/pending'),
+  verifyProvider:  (id)  => apiCall(`/api/admin/providers/${id}/verify`, 'PATCH'),
+  suspendUser:     (id)  => apiCall(`/api/admin/users/${id}/suspend`,    'PATCH'),
+  reactivateUser:  (id)  => apiCall(`/api/admin/users/${id}/reactivate`, 'PATCH'),
+  getAllUsers:     ()    => apiCall('/api/admin/users'),
   getComplaints:   ()    => apiCall('/api/admin/complaints'),
   resolveComplaint: (id) => apiCall(`/api/admin/complaints/${id}/resolve`, 'PUT'),
   getAllReviews:   ()    => apiCall('/api/admin/reviews'),
