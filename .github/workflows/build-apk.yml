@@ -2,7 +2,7 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]    # ← Changed from 'main' to 'master'
   workflow_dispatch:
 
 jobs:
