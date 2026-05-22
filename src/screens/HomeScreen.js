@@ -1,18 +1,31 @@
 // =============================================
 //  src/screens/HomeScreen.js
-//  Shows all service categories with subcategory modal
-//  UPDATED: Subcategory selection with modal
+//  BRAND COLORS: Ethiopian Green (#2E7D32) + Gold (#F9A825)
 // =============================================
 
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
   StyleSheet, SafeAreaView, ActivityIndicator,
-  Alert, Modal, Pressable
+  Alert, Modal
 } from 'react-native';
 import { requestAPI, subcategoryAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
+
+// Brand Colors
+const BRAND = {
+  primary: '#2E7D32',      // Ethiopian Green
+  primaryDark: '#1B5E20',
+  primaryLight: '#E8F5E9',
+  secondary: '#F9A825',    // Gold
+  secondaryLight: '#FFF8E1',
+  text: '#374151',
+  textLight: '#6B7280',
+  white: '#FFFFFF',
+  dark: '#1F2937',
+  error: '#DC2626',
+};
 
 // Map icon names from database to actual emojis
 const ICON_MAP = {
@@ -32,7 +45,6 @@ export default function HomeScreen({ navigation }) {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // Subcategory modal states
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [subcategories, setSubcategories] = useState([]);
@@ -90,7 +102,6 @@ export default function HomeScreen({ navigation }) {
     });
   }
 
-  // Safe logout handler
   const handleLogout = () => {
     if (logout) {
       logout();
@@ -102,11 +113,11 @@ export default function HomeScreen({ navigation }) {
   function renderCategory({ item }) {
     return (
       <TouchableOpacity
-        style={[styles.card, dynamicStyles.card]}
+        style={[styles.card, { backgroundColor: theme === 'dark' ? BRAND.dark : BRAND.white }]}
         onPress={() => loadSubcategories(item.id, item.name)}
       >
         <Text style={styles.cardIcon}>{ICON_MAP[item.icon] || '🔨'}</Text>
-        <Text style={[styles.cardName, dynamicStyles.cardText]}>{item.name}</Text>
+        <Text style={[styles.cardName, { color: theme === 'dark' ? '#EEE' : BRAND.text }]}>{item.name}</Text>
         <Text style={styles.cardHint}>Tap to select →</Text>
       </TouchableOpacity>
     );
@@ -115,66 +126,52 @@ export default function HomeScreen({ navigation }) {
   function renderSubcategory({ item }) {
     return (
       <TouchableOpacity
-        style={styles.subCard}
+        style={[styles.subCard, { backgroundColor: theme === 'dark' ? '#2C2C2C' : BRAND.primaryLight }]}
         onPress={() => selectSubcategory(item)}
       >
         <Text style={styles.subIcon}>{item.icon || '🔧'}</Text>
-        <Text style={styles.subName}>{item.name}</Text>
+        <Text style={[styles.subName, { color: theme === 'dark' ? '#EEE' : BRAND.primary }]}>{item.name}</Text>
       </TouchableOpacity>
     );
   }
 
-  // Dynamic styles based on theme
-  const dynamicStyles = {
-    container: { backgroundColor: theme === 'dark' ? '#121212' : '#f9fafb' },
-    header: {
-      backgroundColor: theme === 'dark' ? '#1e1e1e' : '#fff',
-      borderBottomColor: theme === 'dark' ? '#333' : '#e5e7eb',
-    },
-    greeting: { color: theme === 'dark' ? '#fff' : '#111' },
-    subtitle: { color: theme === 'dark' ? '#aaa' : '#6b7280' },
-    mapBtn: { backgroundColor: theme === 'dark' ? '#1e3a5f' : '#eff6ff' },
-    mapBtnText: { color: theme === 'dark' ? '#90cdf4' : '#1a56db' },
-    logoutBtn: { backgroundColor: theme === 'dark' ? '#5c1e1e' : '#fee2e2' },
-    logoutText: { color: theme === 'dark' ? '#f87171' : '#ef4444' },
-    sectionTitle: { color: theme === 'dark' ? '#ccc' : '#374151' },
-    card: { backgroundColor: theme === 'dark' ? '#2c2c2c' : '#fff' },
-    cardName: { color: theme === 'dark' ? '#eee' : '#374151' },
-    modalContent: { backgroundColor: theme === 'dark' ? '#1e1e1e' : '#fff' },
-    modalTitle: { color: theme === 'dark' ? '#fff' : '#111' },
-    subCard: { backgroundColor: theme === 'dark' ? '#2c2c2c' : '#f3f4f6' },
-    subName: { color: theme === 'dark' ? '#eee' : '#374151' },
-  };
-
   return (
-    <SafeAreaView style={[styles.container, dynamicStyles.container]}>
-      <View style={[styles.header, dynamicStyles.header]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme === 'dark' ? '#121212' : '#F9FAFB' }]}>
+      <View style={[
+        styles.header, 
+        { 
+          backgroundColor: theme === 'dark' ? '#1E1E1E' : BRAND.white,
+          borderBottomColor: theme === 'dark' ? '#333' : '#E5E7EB'
+        }
+      ]}>
         <View>
-          <Text style={[styles.greeting, dynamicStyles.greeting]}>
+          <Text style={[styles.greeting, { color: theme === 'dark' ? '#FFF' : BRAND.text }]}>
             {user ? `${t('hello')}, ${user.name.split(' ')[0]} 👋` : `${t('hello_guest')} 👋`}
           </Text>
-          <Text style={[styles.subtitle, dynamicStyles.subtitle]}>{t('what_service')}</Text>
+          <Text style={[styles.subtitle, { color: theme === 'dark' ? '#AAA' : BRAND.textLight }]}>
+            {t('what_service')}
+          </Text>
         </View>
         {user && (
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <TouchableOpacity
-              style={[styles.mapBtn, dynamicStyles.mapBtn]}
+              style={[styles.mapBtn, { backgroundColor: BRAND.primaryLight }]}
               onPress={() => navigation.navigate('Map')}
             >
-              <Text style={[styles.mapBtnText, dynamicStyles.mapBtnText]}>🗺️ {t('map')}</Text>
+              <Text style={[styles.mapBtnText, { color: BRAND.primary }]}>🗺️ {t('map')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.mapBtn, dynamicStyles.logoutBtn]}
+              style={[styles.mapBtn, styles.logoutBtn]}
               onPress={handleLogout}
             >
-              <Text style={[styles.mapBtnText, dynamicStyles.logoutText]}>{t('logout')}</Text>
+              <Text style={[styles.mapBtnText, { color: BRAND.error }]}>{t('logout')}</Text>
             </TouchableOpacity>
           </View>
         )}
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#1a56db" style={{ marginTop: 40 }} />
+        <ActivityIndicator size="large" color={BRAND.primary} style={{ marginTop: 40 }} />
       ) : (
         <FlatList
           data={categories}
@@ -184,7 +181,9 @@ export default function HomeScreen({ navigation }) {
           contentContainerStyle={styles.grid}
           columnWrapperStyle={styles.row}
           ListHeaderComponent={
-            <Text style={[styles.sectionTitle, dynamicStyles.sectionTitle]}>{t('all_categories')}</Text>
+            <Text style={[styles.sectionTitle, { color: theme === 'dark' ? '#CCC' : BRAND.textLight }]}>
+              {t('all_categories')}
+            </Text>
           }
         />
       )}
@@ -197,9 +196,9 @@ export default function HomeScreen({ navigation }) {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, dynamicStyles.modalContent]}>
+          <View style={[styles.modalContent, { backgroundColor: theme === 'dark' ? '#1E1E1E' : BRAND.white }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, dynamicStyles.modalTitle]}>
+              <Text style={[styles.modalTitle, { color: theme === 'dark' ? '#FFF' : BRAND.text }]}>
                 {selectedCategory?.name || 'Services'}
               </Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
@@ -207,12 +206,12 @@ export default function HomeScreen({ navigation }) {
               </TouchableOpacity>
             </View>
             
-            <Text style={styles.modalSubtitle}>
+            <Text style={[styles.modalSubtitle, { color: BRAND.textLight }]}>
               Select a specific service
             </Text>
 
             {loadingSubs ? (
-              <ActivityIndicator size="large" color="#1a56db" style={{ marginTop: 40 }} />
+              <ActivityIndicator size="large" color={BRAND.primary} style={{ marginTop: 40 }} />
             ) : subcategories.length === 0 ? (
               <View style={styles.emptySubs}>
                 <Text style={styles.emptyIcon}>🔧</Text>
@@ -236,22 +235,21 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container:    { flex: 1 },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', paddingHorizontal: 20,
     paddingTop: 20, paddingBottom: 12,
     borderBottomWidth: 1,
   },
-  greeting:     { fontSize: 20, fontWeight: 'bold' },
-  subtitle:     { fontSize: 14, marginTop: 2 },
-  mapBtn: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-  },
-  mapBtnText:   { fontWeight: '600' },
+  greeting: { fontSize: 20, fontWeight: 'bold' },
+  subtitle: { fontSize: 14, marginTop: 2 },
+  mapBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
+  mapBtnText: { fontWeight: '600' },
+  logoutBtn: { backgroundColor: '#FEE2E2' },
   sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 12 },
-  grid:         { padding: 16 },
-  row:          { justifyContent: 'space-between', marginBottom: 12 },
+  grid: { padding: 16 },
+  row: { justifyContent: 'space-between', marginBottom: 12 },
   card: {
     width: '48%', borderRadius: 16,
     padding: 20, alignItems: 'center',
@@ -260,32 +258,18 @@ const styles = StyleSheet.create({
   },
   cardIcon: { fontSize: 36, marginBottom: 10 },
   cardName: { fontSize: 13, fontWeight: '600', textAlign: 'center', marginBottom: 4 },
-  cardHint: { fontSize: 10, color: '#9ca3af', textAlign: 'center' },
-  
+  cardHint: { fontSize: 10, color: '#9CA3AF', textAlign: 'center' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    maxHeight: '80%',
-  },
+  modalContent: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '80%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   modalTitle: { fontSize: 22, fontWeight: 'bold' },
-  modalClose: { fontSize: 24, fontWeight: '600', color: '#9ca3af', padding: 8 },
-  modalSubtitle: { fontSize: 14, color: '#6b7280', marginBottom: 20 },
+  modalClose: { fontSize: 24, fontWeight: '600', color: '#9CA3AF', padding: 8 },
+  modalSubtitle: { fontSize: 14, marginBottom: 20 },
   subRow: { justifyContent: 'space-between', marginBottom: 12 },
-  subCard: {
-    borderRadius: 12,
-    padding: 14,
-    width: '48%',
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-  },
+  subCard: { borderRadius: 12, padding: 14, width: '48%', alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 },
   subIcon: { fontSize: 20 },
   subName: { fontSize: 13, fontWeight: '500', textAlign: 'center' },
   emptySubs: { alignItems: 'center', paddingVertical: 40 },
   emptyIcon: { fontSize: 48, marginBottom: 12, opacity: 0.5 },
-  emptyText: { fontSize: 16, color: '#9ca3af' },
+  emptyText: { fontSize: 16, color: '#9CA3AF' },
 });

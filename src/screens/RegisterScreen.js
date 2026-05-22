@@ -1,6 +1,7 @@
 // =============================================
 //  src/screens/RegisterScreen.js
-//  UPDATED: Added subcategory/service selection for providers
+//  BRAND COLORS: Ethiopian Green (#2E7D32) + Gold (#F9A825)
+//  With Both Roles option, validation, and service selection
 // =============================================
 
 import React, { useState, useEffect } from 'react';
@@ -14,33 +15,53 @@ import * as ImagePicker from 'expo-image-picker';
 import { authAPI, loginForUpload, BASE_URL, subcategoryAPI } from '../api/client';
 import { useSettings } from '../context/SettingsContext';
 
+// Brand Colors
+const BRAND = {
+  primary: '#2E7D32',
+  primaryDark: '#1B5E20',
+  primaryLight: '#E8F5E9',
+  secondary: '#F9A825',
+  secondaryLight: '#FFF8E1',
+  text: '#374151',
+  textLight: '#6B7280',
+  white: '#FFFFFF',
+  dark: '#1F2937',
+  error: '#DC2626',
+  success: '#10B981',
+};
+
+// Validation helpers
+const validatePhone = (phone) => /^09[0-9]{8}$/.test(phone);
+const validatePassword = (password) => password.length >= 6;
+const validateName = (name) => name.trim().length >= 2;
+
 export default function RegisterScreen({ navigation }) {
   const { t, theme, language, updateLanguage } = useSettings();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('seeker');
+  const [registerBoth, setRegisterBoth] = useState(false);
   const [experienceDescription, setExperienceDescription] = useState('');
   const [idPhoto, setIdPhoto] = useState(null);
   const [certificate, setCertificate] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
   
-  // NEW: Subcategory selection states
   const [subcategories, setSubcategories] = useState([]);
   const [selectedServices, setSelectedServices] = useState([]);
   const [loadingServices, setLoadingServices] = useState(false);
   const [showServiceSelector, setShowServiceSelector] = useState(false);
 
-  // Load subcategories when role changes to provider
   useEffect(() => {
-    if (role === 'provider') {
+    if (role === 'provider' || registerBoth) {
       loadSubcategories();
       setShowServiceSelector(true);
     } else {
       setShowServiceSelector(false);
       setSelectedServices([]);
     }
-  }, [role]);
+  }, [role, registerBoth]);
 
   async function loadSubcategories() {
     setLoadingServices(true);
@@ -54,7 +75,6 @@ export default function RegisterScreen({ navigation }) {
     }
   }
 
-  // Language toggle
   const toggleLanguage = () => {
     updateLanguage(language === 'en' ? 'am' : 'en');
   };
@@ -73,6 +93,30 @@ export default function RegisterScreen({ navigation }) {
     } else {
       setSelectedServices([...selectedServices, subcategoryId]);
     }
+  }
+
+  function validateForm() {
+    const newErrors = {};
+    
+    if (!name.trim()) newErrors.name = 'Name is required';
+    else if (!validateName(name)) newErrors.name = 'Name must be at least 2 characters';
+    
+    if (!phone) newErrors.phone = 'Phone is required';
+    else if (!validatePhone(phone)) newErrors.phone = 'Phone must be 09xxxxxxxx format';
+    
+    if (!password) newErrors.password = 'Password is required';
+    else if (!validatePassword(password)) newErrors.password = 'Password must be at least 6 characters';
+    
+    if ((role === 'provider' || registerBoth) && !idPhoto) {
+      newErrors.idPhoto = 'National ID photo is required';
+    }
+    
+    if ((role === 'provider' || registerBoth) && selectedServices.length === 0) {
+      newErrors.services = 'Select at least one service';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   }
 
   async function uploadDocuments() {
@@ -99,7 +143,6 @@ export default function RegisterScreen({ navigation }) {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message);
       
-      // Save selected services
       if (selectedServices.length > 0) {
         await fetch(`${BASE_URL}/api/subcategories/save-services`, {
           method: 'POST',
@@ -119,49 +162,53 @@ export default function RegisterScreen({ navigation }) {
   }
 
   async function handleRegister() {
-    if (!name || !phone || !password) {
-      Alert.alert(t('missing_fields'), t('fill_all_fields'));
-      return;
-    }
-    if (password.length < 6) {
-      Alert.alert(t('weak_password'), t('password_length'));
-      return;
-    }
-    if (role === 'provider' && !idPhoto) {
-      Alert.alert(t('id_required'), t('upload_id'));
-      return;
-    }
-    if (role === 'provider' && selectedServices.length === 0) {
-      Alert.alert(t('service_required'), t('select_at_least_one_service'));
-      return;
-    }
+    if (!validateForm()) return;
 
     setLoading(true);
     try {
-      await authAPI.register({ name, phone, password, role });
-
-      if (role === 'provider') {
+      if (registerBoth) {
+        await authAPI.register({ name, phone, password, role: 'seeker' });
+        await authAPI.register({ name, phone, password, role: 'provider' });
+        await uploadDocuments();
+        
+        const token = await loginForUpload(phone, password);
+        await fetch(`${BASE_URL}/api/auth/mark-both-roles`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ has_both_roles: true })
+        });
+        
+        Alert.alert(
+          'Registration Successful',
+          'You are now registered as both Seeker and Provider!',
+          [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
+        );
+      } else if (role === 'provider') {
+        await authAPI.register({ name, phone, password, role: 'provider' });
         await uploadDocuments();
         Alert.alert(
-          t('registration_success'),
-          t('provider_pending_message'),
-          [{ text: t('ok'), onPress: () => navigation.navigate('Login') }]
+          'Registration Successful',
+          'Your account is pending admin verification.',
+          [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
         );
       } else {
+        await authAPI.register({ name, phone, password, role: 'seeker' });
         Alert.alert(
-          t('registration_success'),
-          t('seeker_success_message'),
-          [{ text: t('login_now'), onPress: () => navigation.navigate('Login') }]
+          'Registration Successful',
+          'You can now login to your account.',
+          [{ text: 'Login Now', onPress: () => navigation.navigate('Login') }]
         );
       }
     } catch (err) {
-      Alert.alert(t('registration_failed'), err.message);
+      Alert.alert('Registration Failed', err.message);
     } finally {
       setLoading(false);
     }
   }
 
-  // Group subcategories by category name
   const groupedSubcategories = subcategories.reduce((groups, sub) => {
     const catName = sub.category_name;
     if (!groups[catName]) groups[catName] = [];
@@ -169,57 +216,14 @@ export default function RegisterScreen({ navigation }) {
     return groups;
   }, {});
 
-  // Dynamic styles based on theme
-  const dynamicStyles = {
-    container: { backgroundColor: theme === 'dark' ? '#121212' : '#fff' },
-    title: { color: theme === 'dark' ? '#fff' : '#111' },
-    subtitle: { color: theme === 'dark' ? '#aaa' : '#6b7280' },
-    label: { color: theme === 'dark' ? '#ddd' : '#374151' },
-    input: {
-      backgroundColor: theme === 'dark' ? '#2c2c2c' : '#f9fafb',
-      borderColor: theme === 'dark' ? '#444' : '#d1d5db',
-      color: theme === 'dark' ? '#fff' : '#111',
-    },
-    roleBtn: {
-      borderColor: theme === 'dark' ? '#555' : '#e5e7eb',
-      backgroundColor: theme === 'dark' ? '#2c2c2c' : '#fff',
-    },
-    roleBtnActive: { borderColor: '#1a56db', backgroundColor: theme === 'dark' ? '#1e3a5f' : '#eff6ff' },
-    roleText: { color: theme === 'dark' ? '#ccc' : '#374151' },
-    roleTextActive: { color: '#1a56db' },
-    roleDesc: { color: theme === 'dark' ? '#888' : '#9ca3af' },
-    divider: { backgroundColor: theme === 'dark' ? '#333' : '#e5e7eb' },
-    sectionTitle: { color: theme === 'dark' ? '#fff' : '#111' },
-    sectionDesc: { color: theme === 'dark' ? '#aaa' : '#6b7280' },
-    uploadBtn: {
-      backgroundColor: theme === 'dark' ? '#2c2c2c' : '#f9fafb',
-      borderColor: theme === 'dark' ? '#555' : '#d1d5db',
-    },
-    uploadBtnDone: { borderColor: '#10b981', backgroundColor: theme === 'dark' ? '#1e3a5f' : '#f0fdf4' },
-    uploadBtnText: { color: theme === 'dark' ? '#aaa' : '#6b7280' },
-    serviceBtn: {
-      backgroundColor: theme === 'dark' ? '#2c2c2c' : '#f3f4f6',
-    },
-    serviceBtnSelected: {
-      backgroundColor: '#1a56db',
-    },
-    serviceName: { color: theme === 'dark' ? '#ccc' : '#374151' },
-    serviceNameSelected: { color: '#fff' },
-    noteBox: { backgroundColor: theme === 'dark' ? '#5c1e1e' : '#fef3c7', borderLeftColor: '#f59e0b' },
-    noteText: { color: theme === 'dark' ? '#ffb3b3' : '#92400e' },
-    btn: { backgroundColor: theme === 'dark' ? '#2563eb' : '#1a56db' },
-    linkText: { color: theme === 'dark' ? '#aaa' : '#6b7280' },
-    link: { color: theme === 'dark' ? '#60a5fa' : '#1a56db' },
-    backBtnText: { color: theme === 'dark' ? '#60a5fa' : '#1a56db' },
-    categoryTitle: { color: theme === 'dark' ? '#60a5fa' : '#1a56db' },
-  };
+  const needsProviderFields = role === 'provider' || registerBoth;
+  const isDark = theme === 'dark';
 
   return (
-    <SafeAreaView style={[styles.container, dynamicStyles.container]}>
-      {/* Top row: Back + Language Toggle */}
+    <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#F9FAFB' }]}>
       <View style={styles.headerRow}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={[styles.backBtnText, dynamicStyles.backBtnText]}>← {t('back')}</Text>
+          <Text style={[styles.backBtnText, { color: BRAND.primary }]}>← Back</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={toggleLanguage} style={styles.langBtn}>
           <Text style={styles.langBtnText}>{language === 'en' ? 'አማርኛ' : 'English'}</Text>
@@ -229,89 +233,143 @@ export default function RegisterScreen({ navigation }) {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.inner}>
           <View style={styles.header}>
-            <Text style={[styles.title, dynamicStyles.title]}>{t('create_account')} 🏘️</Text>
-            <Text style={[styles.subtitle, dynamicStyles.subtitle]}>{t('join_us')}</Text>
+            <Text style={[styles.title, { color: isDark ? '#FFF' : BRAND.text }]}>Create Account 🏘️</Text>
+            <Text style={[styles.subtitle, { color: isDark ? '#AAA' : BRAND.textLight }]}>Join our community</Text>
           </View>
 
-          <Text style={[styles.label, dynamicStyles.label]}>{t('i_am_a')}</Text>
+          <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>I am a</Text>
           <View style={styles.roleRow}>
             <TouchableOpacity
-              style={[styles.roleBtn, dynamicStyles.roleBtn, role === 'seeker' && dynamicStyles.roleBtnActive]}
-              onPress={() => setRole('seeker')}
+              style={[
+                styles.roleBtn, 
+                { borderColor: isDark ? '#555' : '#E5E7EB', backgroundColor: isDark ? '#2C2C2C' : BRAND.white },
+                role === 'seeker' && !registerBoth && { borderColor: BRAND.primary, backgroundColor: BRAND.primaryLight }
+              ]}
+              onPress={() => { setRole('seeker'); setRegisterBoth(false); }}
             >
               <Text style={styles.roleIcon}>🔍</Text>
-              <Text style={[styles.roleText, dynamicStyles.roleText, role === 'seeker' && dynamicStyles.roleTextActive]}>{t('seeker')}</Text>
-              <Text style={[styles.roleDesc, dynamicStyles.roleDesc]}>{t('seeker_desc')}</Text>
+              <Text style={[styles.roleText, { color: isDark ? '#CCC' : BRAND.text }, role === 'seeker' && !registerBoth && { color: BRAND.primary }]}>
+                Service Seeker
+              </Text>
+              <Text style={[styles.roleDesc, { color: isDark ? '#888' : BRAND.textLight }]}>Need a service done</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.roleBtn, dynamicStyles.roleBtn, role === 'provider' && dynamicStyles.roleBtnActive]}
-              onPress={() => setRole('provider')}
+              style={[
+                styles.roleBtn, 
+                { borderColor: isDark ? '#555' : '#E5E7EB', backgroundColor: isDark ? '#2C2C2C' : BRAND.white },
+                role === 'provider' && !registerBoth && { borderColor: BRAND.primary, backgroundColor: BRAND.primaryLight }
+              ]}
+              onPress={() => { setRole('provider'); setRegisterBoth(false); }}
             >
               <Text style={styles.roleIcon}>👷</Text>
-              <Text style={[styles.roleText, dynamicStyles.roleText, role === 'provider' && dynamicStyles.roleTextActive]}>{t('provider')}</Text>
-              <Text style={[styles.roleDesc, dynamicStyles.roleDesc]}>{t('provider_desc')}</Text>
+              <Text style={[styles.roleText, { color: isDark ? '#CCC' : BRAND.text }, role === 'provider' && !registerBoth && { color: BRAND.primary }]}>
+                Service Provider
+              </Text>
+              <Text style={[styles.roleDesc, { color: isDark ? '#888' : BRAND.textLight }]}>Offer your skills</Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={[styles.label, dynamicStyles.label]}>{t('full_name')}</Text>
+          {/* Both Roles Option */}
+          <TouchableOpacity
+            style={[
+              styles.bothRolesCard, 
+              { backgroundColor: isDark ? '#1E3A5F' : BRAND.primaryLight, borderColor: BRAND.primary },
+              registerBoth && { borderWidth: 2 }
+            ]}
+            onPress={() => { setRegisterBoth(true); setRole('seeker'); }}
+          >
+            <Text style={[styles.bothRolesIcon, { color: BRAND.primary }]}>🔄</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.bothRolesTitle, { color: BRAND.primary }]}>Be Both!</Text>
+              <Text style={[styles.bothRolesDesc, { color: BRAND.primary }]}>Register as both Seeker and Provider</Text>
+            </View>
+            {registerBoth && <Text style={styles.checkMark}>✅</Text>}
+          </TouchableOpacity>
+
+          <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>Full Name</Text>
           <TextInput
-            style={[styles.input, dynamicStyles.input]}
-            placeholder={t('name_placeholder')}
-            placeholderTextColor={theme === 'dark' ? '#888' : '#9ca3af'}
+            style={[
+              styles.input, 
+              { 
+                backgroundColor: isDark ? '#2C2C2C' : BRAND.white,
+                borderColor: errors.name ? BRAND.error : (isDark ? '#444' : '#E5E7EB'),
+                color: isDark ? '#FFF' : BRAND.text
+              }
+            ]}
+            placeholder="Your full name"
+            placeholderTextColor={isDark ? '#888' : '#9CA3AF'}
             value={name}
             onChangeText={setName}
           />
+          {errors.name && <Text style={[styles.errorText, { color: BRAND.error }]}>{errors.name}</Text>}
 
-          <Text style={[styles.label, dynamicStyles.label]}>{t('phone_number')}</Text>
+          <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>Phone Number</Text>
           <TextInput
-            style={[styles.input, dynamicStyles.input]}
-            placeholder={t('phone_placeholder')}
-            placeholderTextColor={theme === 'dark' ? '#888' : '#9ca3af'}
+            style={[
+              styles.input, 
+              { 
+                backgroundColor: isDark ? '#2C2C2C' : BRAND.white,
+                borderColor: errors.phone ? BRAND.error : (isDark ? '#444' : '#E5E7EB'),
+                color: isDark ? '#FFF' : BRAND.text
+              }
+            ]}
+            placeholder="e.g. 0912345678"
+            placeholderTextColor={isDark ? '#888' : '#9CA3AF'}
             keyboardType="phone-pad"
             value={phone}
             onChangeText={setPhone}
           />
+          {errors.phone && <Text style={[styles.errorText, { color: BRAND.error }]}>{errors.phone}</Text>}
 
-          <Text style={[styles.label, dynamicStyles.label]}>{t('password')}</Text>
+          <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>Password</Text>
           <TextInput
-            style={[styles.input, dynamicStyles.input]}
-            placeholder={t('password_placeholder')}
-            placeholderTextColor={theme === 'dark' ? '#888' : '#9ca3af'}
+            style={[
+              styles.input, 
+              { 
+                backgroundColor: isDark ? '#2C2C2C' : BRAND.white,
+                borderColor: errors.password ? BRAND.error : (isDark ? '#444' : '#E5E7EB'),
+                color: isDark ? '#FFF' : BRAND.text
+              }
+            ]}
+            placeholder="At least 6 characters"
+            placeholderTextColor={isDark ? '#888' : '#9CA3AF'}
             secureTextEntry
             value={password}
             onChangeText={setPassword}
           />
+          {errors.password && <Text style={[styles.errorText, { color: BRAND.error }]}>{errors.password}</Text>}
 
-          {role === 'provider' && (
+          {needsProviderFields && (
             <>
-              <View style={[styles.divider, dynamicStyles.divider]} />
+              <View style={[styles.divider, { backgroundColor: isDark ? '#333' : '#E5E7EB' }]} />
               
-              {/* NEW: Service Selection Section */}
-              <Text style={[styles.sectionTitle, dynamicStyles.sectionTitle]}>{t('select_services')}</Text>
-              <Text style={[styles.sectionDesc, dynamicStyles.sectionDesc]}>{t('select_services_desc')}</Text>
+              <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : BRAND.text }]}>Select Your Services</Text>
+              <Text style={[styles.sectionDesc, { color: isDark ? '#AAA' : BRAND.textLight }]}>Choose all services you offer</Text>
+              
+              {errors.services && <Text style={[styles.errorText, { color: BRAND.error }]}>{errors.services}</Text>}
               
               {loadingServices ? (
-                <ActivityIndicator size="large" color="#1a56db" style={{ marginVertical: 20 }} />
+                <ActivityIndicator size="large" color={BRAND.primary} style={{ marginVertical: 20 }} />
               ) : (
                 Object.entries(groupedSubcategories).map(([categoryName, services]) => (
                   <View key={categoryName} style={styles.categoryGroup}>
-                    <Text style={[styles.categoryTitle, dynamicStyles.categoryTitle]}>{categoryName}</Text>
+                    <Text style={[styles.categoryTitle, { color: BRAND.primary }]}>{categoryName}</Text>
                     <View style={styles.servicesGrid}>
                       {services.map(service => (
                         <TouchableOpacity
                           key={service.id}
                           style={[
                             styles.serviceBtn,
-                            dynamicStyles.serviceBtn,
-                            selectedServices.includes(service.id) && dynamicStyles.serviceBtnSelected
+                            { backgroundColor: isDark ? '#2C2C2C' : '#F3F4F6' },
+                            selectedServices.includes(service.id) && { backgroundColor: BRAND.primary }
                           ]}
                           onPress={() => toggleService(service.id)}
                         >
                           <Text style={styles.serviceIcon}>{service.icon || '📌'}</Text>
                           <Text style={[
                             styles.serviceName,
-                            dynamicStyles.serviceName,
-                            selectedServices.includes(service.id) && dynamicStyles.serviceNameSelected
+                            { color: isDark ? '#CCC' : BRAND.text },
+                            selectedServices.includes(service.id) && { color: '#FFF' }
                           ]}>{service.name}</Text>
                         </TouchableOpacity>
                       ))}
@@ -320,45 +378,67 @@ export default function RegisterScreen({ navigation }) {
                 ))
               )}
               
-              <View style={[styles.divider, dynamicStyles.divider]} />
-              <Text style={[styles.sectionTitle, dynamicStyles.sectionTitle]}>{t('verification_docs')}</Text>
-              <Text style={[styles.sectionDesc, dynamicStyles.sectionDesc]}>{t('admin_review_note')}</Text>
+              <View style={[styles.divider, { backgroundColor: isDark ? '#333' : '#E5E7EB' }]} />
+              <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : BRAND.text }]}>Verification Documents</Text>
+              <Text style={[styles.sectionDesc, { color: isDark ? '#AAA' : BRAND.textLight }]}>These will be reviewed by admin</Text>
 
-              <Text style={[styles.label, dynamicStyles.label]}>{t('national_id')} <Text style={styles.required}>*</Text></Text>
+              <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>National ID Photo *</Text>
+              {errors.idPhoto && <Text style={[styles.errorText, { color: BRAND.error }]}>{errors.idPhoto}</Text>}
               <TouchableOpacity
-                style={[styles.uploadBtn, dynamicStyles.uploadBtn, idPhoto && dynamicStyles.uploadBtnDone]}
+                style={[
+                  styles.uploadBtn, 
+                  { 
+                    backgroundColor: isDark ? '#2C2C2C' : '#F9FAFB',
+                    borderColor: errors.idPhoto ? BRAND.error : (isDark ? '#555' : '#D1D5DB')
+                  },
+                  idPhoto && { borderColor: BRAND.success, backgroundColor: BRAND.primaryLight }
+                ]}
                 onPress={() => pickImage(setIdPhoto)}
               >
                 {idPhoto ? (
                   <View style={styles.uploadedRow}>
                     <Image source={{ uri: idPhoto.uri }} style={styles.thumbImage} />
-                    <Text style={[styles.uploadedText, { color: '#10b981' }]}>{t('id_selected')}</Text>
+                    <Text style={[styles.uploadedText, { color: BRAND.success }]}>ID Photo Selected</Text>
                   </View>
                 ) : (
-                  <Text style={[styles.uploadBtnText, dynamicStyles.uploadBtnText]}>{t('upload_id')}</Text>
+                  <Text style={[styles.uploadBtnText, { color: isDark ? '#AAA' : BRAND.textLight }]}>📷 Upload National ID</Text>
                 )}
               </TouchableOpacity>
 
-              <Text style={[styles.label, dynamicStyles.label]}>{t('certificate')} <Text style={styles.optional}>({t('optional')})</Text></Text>
+              <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>Certificate (Optional)</Text>
               <TouchableOpacity
-                style={[styles.uploadBtn, dynamicStyles.uploadBtn, certificate && dynamicStyles.uploadBtnDone]}
+                style={[
+                  styles.uploadBtn, 
+                  { 
+                    backgroundColor: isDark ? '#2C2C2C' : '#F9FAFB',
+                    borderColor: isDark ? '#555' : '#D1D5DB'
+                  },
+                  certificate && { borderColor: BRAND.success, backgroundColor: BRAND.primaryLight }
+                ]}
                 onPress={() => pickImage(setCertificate)}
               >
                 {certificate ? (
                   <View style={styles.uploadedRow}>
                     <Image source={{ uri: certificate.uri }} style={styles.thumbImage} />
-                    <Text style={[styles.uploadedText, { color: '#10b981' }]}>{t('cert_selected')}</Text>
+                    <Text style={[styles.uploadedText, { color: BRAND.success }]}>Certificate Selected</Text>
                   </View>
                 ) : (
-                  <Text style={[styles.uploadBtnText, dynamicStyles.uploadBtnText]}>{t('upload_cert')}</Text>
+                  <Text style={[styles.uploadBtnText, { color: isDark ? '#AAA' : BRAND.textLight }]}>📄 Upload Certificate</Text>
                 )}
               </TouchableOpacity>
 
-              <Text style={[styles.label, dynamicStyles.label]}>{t('experience_desc')} <Text style={styles.optional}>({t('optional')})</Text></Text>
+              <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>Experience Description</Text>
               <TextInput
-                style={[styles.input, dynamicStyles.input, { minHeight: 100 }]}
-                placeholder={t('experience_placeholder')}
-                placeholderTextColor={theme === 'dark' ? '#888' : '#9ca3af'}
+                style={[
+                  styles.input, styles.textArea,
+                  { 
+                    backgroundColor: isDark ? '#2C2C2C' : BRAND.white,
+                    borderColor: isDark ? '#444' : '#E5E7EB',
+                    color: isDark ? '#FFF' : BRAND.text
+                  }
+                ]}
+                placeholder="Tell us about your experience..."
+                placeholderTextColor={isDark ? '#888' : '#9CA3AF'}
                 multiline
                 numberOfLines={4}
                 value={experienceDescription}
@@ -366,23 +446,25 @@ export default function RegisterScreen({ navigation }) {
                 textAlignVertical="top"
               />
 
-              <View style={[styles.noteBox, dynamicStyles.noteBox]}>
-                <Text style={[styles.noteText, dynamicStyles.noteText]}>{t('verification_note')}</Text>
+              <View style={[styles.noteBox, { backgroundColor: isDark ? '#5C1E1E' : '#FEF3C7', borderLeftColor: '#F59E0B' }]}>
+                <Text style={[styles.noteText, { color: isDark ? '#FFB3B3' : '#92400E' }]}>
+                  Your documents will be reviewed. You will be notified once verified.
+                </Text>
               </View>
             </>
           )}
 
           <TouchableOpacity
-            style={[styles.btn, dynamicStyles.btn, loading && { opacity: 0.7 }]}
+            style={[styles.btn, { backgroundColor: BRAND.primary }, loading && { opacity: 0.7 }]}
             onPress={handleRegister}
             disabled={loading}
           >
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{t('create_account')}</Text>}
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Create Account</Text>}
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-            <Text style={[styles.linkText, dynamicStyles.linkText]}>
-              {t('have_account')} <Text style={[styles.link, dynamicStyles.link]}>{t('login')}</Text>
+            <Text style={[styles.linkText, { color: isDark ? '#AAA' : BRAND.textLight }]}>
+              Already have an account? <Text style={[styles.link, { color: BRAND.primary }]}>Login</Text>
             </Text>
           </TouchableOpacity>
         </ScrollView>
@@ -403,21 +485,26 @@ const styles = StyleSheet.create({
   },
   backBtn: { padding: 8 },
   backBtnText: { fontSize: 16, fontWeight: '600' },
-  langBtn: { backgroundColor: '#e5e7eb', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
+  langBtn: { backgroundColor: '#E5E7EB', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
   langBtnText: { fontSize: 14, fontWeight: '600', color: '#111' },
   inner: { paddingHorizontal: 24, paddingVertical: 32, gap: 12 },
   header: { marginBottom: 8 },
   title: { fontSize: 28, fontWeight: 'bold', marginBottom: 6 },
   subtitle: { fontSize: 15 },
   label: { fontSize: 14, fontWeight: '600' },
-  required: { color: '#ef4444', fontWeight: '400' },
-  optional: { color: '#9ca3af', fontWeight: '400' },
+  errorText: { fontSize: 12, marginTop: -8, marginBottom: 4 },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15 },
-  roleRow: { flexDirection: 'row', gap: 12, marginBottom: 4 },
+  textArea: { minHeight: 100 },
+  roleRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
   roleBtn: { flex: 1, borderWidth: 2, borderRadius: 12, padding: 14, alignItems: 'center' },
   roleIcon: { fontSize: 28, marginBottom: 4 },
   roleText: { fontSize: 13, fontWeight: '600' },
   roleDesc: { fontSize: 11, marginTop: 2 },
+  bothRolesCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1.5, borderRadius: 12, padding: 16, marginBottom: 8 },
+  bothRolesIcon: { fontSize: 28 },
+  bothRolesTitle: { fontSize: 15, fontWeight: 'bold' },
+  bothRolesDesc: { fontSize: 12 },
+  checkMark: { fontSize: 18 },
   divider: { height: 1, marginVertical: 8 },
   sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
   sectionDesc: { fontSize: 13, lineHeight: 18, marginBottom: 12 },
@@ -428,7 +515,6 @@ const styles = StyleSheet.create({
   serviceIcon: { fontSize: 14 },
   serviceName: { fontSize: 12 },
   uploadBtn: { borderWidth: 2, borderStyle: 'dashed', borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginBottom: 12 },
-  uploadBtnDone: { borderStyle: 'solid' },
   uploadBtnText: { fontSize: 15 },
   uploadedRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   thumbImage: { width: 40, height: 40, borderRadius: 6 },

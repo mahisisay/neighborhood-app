@@ -1,7 +1,6 @@
 // =============================================
 //  src/screens/PostRequestScreen.js
-//  Seeker fills out a form to post a job request.
-//  UPDATED: Accepts subcategory from HomeScreen
+//  BRAND COLORS: Ethiopian Green (#2E7D32) + Gold (#F9A825)
 // =============================================
 
 import React, { useState, useEffect } from 'react';
@@ -14,6 +13,18 @@ import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { requestAPI, subcategoryAPI } from '../api/client';
 
+const BRAND = {
+  primary: '#2E7D32',
+  primaryDark: '#1B5E20',
+  primaryLight: '#E8F5E9',
+  secondary: '#F9A825',
+  secondaryLight: '#FFF8E1',
+  text: '#374151',
+  textLight: '#6B7280',
+  white: '#FFFFFF',
+  error: '#DC2626',
+};
+
 const ICON_MAP = {
   wrench: '🔧', zap: '⚡', droplet: '💧', book: '📚',
   smartphone: '📱', wind: '🧹', truck: '🚛', brush: '🖌️',
@@ -25,20 +36,19 @@ export default function PostRequestScreen({ navigation, route }) {
   const preselectedCategoryId = route.params?.category_id || null;
   const preselectedSubcategoryId = route.params?.subcategory_id || null;
 
-  const [categories,   setCategories]   = useState([]);
-  const [selectedCat,  setSelectedCat]  = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [selectedCat, setSelectedCat] = useState(null);
   const [selectedSubcat, setSelectedSubcat] = useState(null);
-  const [description,  setDescription]  = useState('');
-  const [photoUri,     setPhotoUri]     = useState(null);
-  const [location,     setLocation]     = useState(null);
-  const [loading,      setLoading]      = useState(false);
-  const [locLoading,   setLocLoading]   = useState(true);
+  const [description, setDescription] = useState('');
+  const [photoUri, setPhotoUri] = useState(null);
+  const [location, setLocation] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [locLoading, setLocLoading] = useState(true);
 
   useEffect(() => {
     loadCategories();
     getLocation();
     
-    // Set preselected values if coming from HomeScreen
     if (preselectedCategoryId && preselectedSubcategoryId) {
       setSelectedCat({ id: preselectedCategoryId, name: route.params?.category_name });
       setSelectedSubcat({ id: preselectedSubcategoryId, name: preselectedSubcategory });
@@ -100,23 +110,15 @@ export default function PostRequestScreen({ navigation, route }) {
     try {
       const data = await requestAPI.create({
         category_id: selectedCat.id,
-        description:  description.trim(),
-        latitude:     location.latitude,
-        longitude:    location.longitude,
+        description: description.trim(),
+        latitude: location.latitude,
+        longitude: location.longitude,
       });
 
       Alert.alert(
         'Request Posted! 🎉',
         `${data.nearbyProvidersNotified} provider(s) have been notified near you!`,
-        [
-          { 
-            text: 'View My Requests', 
-            onPress: () => {
-              if (navigation) navigation.navigate('MyRequests');
-              else Alert.alert('Navigation error', 'Could not go to My Requests');
-            }
-          }
-        ]
+        [{ text: 'View My Requests', onPress: () => navigation.navigate('MyRequests') }]
       );
     } catch (err) {
       Alert.alert('Error', err.message);
@@ -126,44 +128,52 @@ export default function PostRequestScreen({ navigation, route }) {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: BRAND.white }]}>
       <ScrollView contentContainerStyle={styles.inner}>
-        <Text style={styles.title}>Post a Request 📋</Text>
-        <Text style={styles.subtitle}>Tell us what you need help with</Text>
+        <Text style={[styles.title, { color: BRAND.text }]}>Post a Request 📋</Text>
+        <Text style={[styles.subtitle, { color: BRAND.textLight }]}>Tell us what you need help with</Text>
 
-        {/* Selected Category Display */}
         {selectedCat && (
-          <View style={styles.selectedBox}>
-            <Text style={styles.selectedLabel}>Selected Service:</Text>
-            <Text style={styles.selectedValue}>
+          <View style={[styles.selectedBox, { backgroundColor: BRAND.primaryLight }]}>
+            <Text style={[styles.selectedLabel, { color: BRAND.primary }]}>Selected Service:</Text>
+            <Text style={[styles.selectedValue, { color: BRAND.primary }]}>
               {selectedSubcat ? `${selectedCat.name} → ${selectedSubcat.name}` : selectedCat.name}
             </Text>
           </View>
         )}
 
-        <Text style={styles.label}>Service Category *</Text>
+        <Text style={[styles.label, { color: BRAND.text }]}>Service Category *</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catScroll}>
           {categories.map(cat => (
             <TouchableOpacity
               key={cat.id}
-              style={[styles.catChip, selectedCat?.id === cat.id && styles.catChipActive]}
+              style={[
+                styles.catChip, 
+                { backgroundColor: '#F9FAFB', borderColor: '#E5E7EB' },
+                selectedCat?.id === cat.id && { borderColor: BRAND.primary, backgroundColor: BRAND.primaryLight }
+              ]}
               onPress={() => {
                 setSelectedCat(cat);
                 setSelectedSubcat(null);
               }}
             >
               <Text style={styles.catIcon}>{ICON_MAP[cat.icon] || '🔨'}</Text>
-              <Text style={[styles.catText, selectedCat?.id === cat.id && styles.catTextActive]}>
+              <Text style={[
+                styles.catText, 
+                { color: BRAND.text },
+                selectedCat?.id === cat.id && { color: BRAND.primary, fontWeight: '600' }
+              ]}>
                 {cat.name}
               </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
 
-        <Text style={styles.label}>Describe Your Problem *</Text>
+        <Text style={[styles.label, { color: BRAND.text }]}>Describe Your Problem *</Text>
         <TextInput
-          style={styles.textarea}
+          style={[styles.textarea, { backgroundColor: '#F9FAFB', borderColor: '#E5E7EB', color: BRAND.text }]}
           placeholder="e.g. My kitchen pipe is leaking near the sink. Need urgent repair."
+          placeholderTextColor={BRAND.textLight}
           multiline
           numberOfLines={4}
           value={description}
@@ -171,39 +181,36 @@ export default function PostRequestScreen({ navigation, route }) {
           textAlignVertical="top"
         />
 
-        <Text style={styles.label}>Add a Photo (Optional)</Text>
-        <TouchableOpacity style={styles.photoBtn} onPress={pickPhoto}>
-          <Text style={styles.photoBtnText}>
+        <Text style={[styles.label, { color: BRAND.text }]}>Add a Photo (Optional)</Text>
+        <TouchableOpacity style={[styles.photoBtn, { borderColor: '#D1D5DB' }]} onPress={pickPhoto}>
+          <Text style={[styles.photoBtnText, { color: BRAND.textLight }]}>
             {photoUri ? '✅ Photo Selected' : '📷 Choose Photo'}
           </Text>
         </TouchableOpacity>
 
         <View style={styles.locationRow}>
-          <Text style={styles.label}>Your Location</Text>
+          <Text style={[styles.label, { color: BRAND.text }]}>Your Location</Text>
           {locLoading
-            ? <ActivityIndicator size="small" color="#1a56db" />
-            : <Text style={styles.locationStatus}>
+            ? <ActivityIndicator size="small" color={BRAND.primary} />
+            : <Text style={[styles.locationStatus, { color: BRAND.success }]}>
                 {location ? '✅ Location detected' : '❌ Location not available'}
               </Text>
           }
         </View>
 
-        <View style={styles.feeBox}>
-          <Text style={styles.feeTitle}>💳 Fee Information</Text>
-          <Text style={styles.feeText}>
+        <View style={[styles.feeBox, { backgroundColor: BRAND.secondaryLight, borderLeftColor: BRAND.secondary }]}>
+          <Text style={[styles.feeTitle, { color: '#92400E' }]}>💳 Fee Information</Text>
+          <Text style={[styles.feeText, { color: '#92400E' }]}>
             After a provider accepts your request, you will pay a 100 ETB commitment fee to unlock their contact details.
           </Text>
         </View>
 
         <TouchableOpacity
-          style={[styles.btn, loading && { opacity: 0.7 }]}
+          style={[styles.btn, { backgroundColor: BRAND.primary }, loading && { opacity: 0.7 }]}
           onPress={handleSubmit}
           disabled={loading}
         >
-          {loading
-            ? <ActivityIndicator color="#fff" />
-            : <Text style={styles.btnText}>Post Request</Text>
-          }
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Post Request</Text>}
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -211,47 +218,26 @@ export default function PostRequestScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  container:   { flex: 1, backgroundColor: '#fff' },
-  inner:       { padding: 20, gap: 12 },
-  title:       { fontSize: 24, fontWeight: 'bold', color: '#111' },
-  subtitle:    { fontSize: 14, color: '#6b7280', marginBottom: 4 },
-  label:       { fontSize: 14, fontWeight: '600', color: '#374151' },
-  selectedBox: { backgroundColor: '#eff6ff', borderRadius: 12, padding: 12, marginBottom: 8 },
-  selectedLabel: { fontSize: 12, color: '#1a56db', marginBottom: 4 },
-  selectedValue: { fontSize: 16, fontWeight: '600', color: '#1a56db' },
-  catScroll:   { marginBottom: 4 },
-  catChip: {
-    flexDirection: 'row', alignItems: 'center',
-    borderWidth: 1, borderColor: '#e5e7eb',
-    borderRadius: 20, paddingHorizontal: 14,
-    paddingVertical: 8, marginRight: 8,
-    backgroundColor: '#f9fafb',
-  },
-  catChipActive: { borderColor: '#1a56db', backgroundColor: '#eff6ff' },
-  catIcon:       { fontSize: 16, marginRight: 6 },
-  catText:       { fontSize: 13, color: '#374151' },
-  catTextActive: { color: '#1a56db', fontWeight: '600' },
-  textarea: {
-    borderWidth: 1, borderColor: '#d1d5db', borderRadius: 12,
-    paddingHorizontal: 16, paddingVertical: 12,
-    fontSize: 15, backgroundColor: '#f9fafb', minHeight: 100,
-  },
-  photoBtn: {
-    borderWidth: 2, borderColor: '#d1d5db', borderStyle: 'dashed',
-    borderRadius: 12, paddingVertical: 16, alignItems: 'center',
-  },
-  photoBtnText: { color: '#6b7280', fontSize: 15 },
-  locationRow:  { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  locationStatus:{ fontSize: 13, color: '#10b981' },
-  feeBox: {
-    backgroundColor: '#fef3c7', borderRadius: 12,
-    padding: 14, borderLeftWidth: 4, borderLeftColor: '#f59e0b',
-  },
-  feeTitle: { fontSize: 14, fontWeight: '600', color: '#92400e', marginBottom: 4 },
-  feeText:  { fontSize: 13, color: '#92400e', lineHeight: 18 },
-  btn: {
-    backgroundColor: '#1a56db', borderRadius: 14,
-    paddingVertical: 16, alignItems: 'center', marginTop: 8,
-  },
+  container: { flex: 1 },
+  inner: { padding: 20, gap: 12 },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 4 },
+  subtitle: { fontSize: 14, marginBottom: 4 },
+  label: { fontSize: 14, fontWeight: '600' },
+  selectedBox: { borderRadius: 12, padding: 12, marginBottom: 8 },
+  selectedLabel: { fontSize: 12, marginBottom: 4 },
+  selectedValue: { fontSize: 16, fontWeight: '600' },
+  catScroll: { marginBottom: 4 },
+  catChip: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, marginRight: 8 },
+  catIcon: { fontSize: 16, marginRight: 6 },
+  catText: { fontSize: 13 },
+  textarea: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 15, minHeight: 100 },
+  photoBtn: { borderWidth: 2, borderStyle: 'dashed', borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
+  photoBtnText: { fontSize: 15 },
+  locationRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  locationStatus: { fontSize: 13 },
+  feeBox: { borderRadius: 12, padding: 14, borderLeftWidth: 4 },
+  feeTitle: { fontSize: 14, fontWeight: '600', marginBottom: 4 },
+  feeText: { fontSize: 13, lineHeight: 18 },
+  btn: { borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
   btnText: { color: '#fff', fontSize: 17, fontWeight: 'bold' },
 });

@@ -1,4 +1,8 @@
-// src/screens/LoginScreen.js
+// =============================================
+//  src/screens/LoginScreen.js
+//  BRAND COLORS: Ethiopian Green (#2E7D32) + Gold (#F9A825)
+// =============================================
+
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
@@ -8,6 +12,20 @@ import {
 import { authAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
+
+// Brand Colors
+const BRAND = {
+  primary: '#2E7D32',      // Ethiopian Green
+  primaryDark: '#1B5E20',
+  primaryLight: '#E8F5E9',
+  secondary: '#F9A825',    // Gold
+  secondaryLight: '#FFF8E1',
+  text: '#374151',
+  textLight: '#6B7280',
+  white: '#FFFFFF',
+  dark: '#1F2937',
+  error: '#DC2626',
+};
 
 export default function LoginScreen({ navigation }) {
   const { login } = useAuth();
@@ -40,28 +58,12 @@ export default function LoginScreen({ navigation }) {
     }
   }
 
-  const dynamicStyles = {
-    container: { backgroundColor: theme === 'dark' ? '#121212' : '#fff' },
-    title: { color: theme === 'dark' ? '#fff' : '#111' },
-    subtitle: { color: theme === 'dark' ? '#aaa' : '#6b7280' },
-    label: { color: theme === 'dark' ? '#ddd' : '#374151' },
-    input: {
-      backgroundColor: theme === 'dark' ? '#2c2c2c' : '#f9fafb',
-      borderColor: theme === 'dark' ? '#444' : '#d1d5db',
-      color: theme === 'dark' ? '#fff' : '#111',
-    },
-    btn: { backgroundColor: theme === 'dark' ? '#2563eb' : '#1a56db' },
-    linkText: { color: theme === 'dark' ? '#aaa' : '#6b7280' },
-    link: { color: theme === 'dark' ? '#60a5fa' : '#1a56db' },
-    backBtn: { color: theme === 'dark' ? '#60a5fa' : '#1a56db' },
-  };
-
   return (
-    <SafeAreaView style={[styles.container, dynamicStyles.container]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme === 'dark' ? '#121212' : BRAND.white }]}>
       {/* Top row: Back + Language Toggle */}
       <View style={styles.headerRow}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={[styles.backBtnText, dynamicStyles.backBtn]}>← {t('back')}</Text>
+          <Text style={[styles.backBtnText, { color: BRAND.primary }]}>← {t('back')}</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={toggleLanguage} style={styles.langBtn}>
           <Text style={styles.langBtnText}>{language === 'en' ? 'አማርኛ' : 'English'}</Text>
@@ -70,34 +72,64 @@ export default function LoginScreen({ navigation }) {
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.inner}>
         <View style={styles.header}>
-          <Text style={[styles.title, dynamicStyles.title]}>{t('welcome_back')} 🏘️</Text>
-          <Text style={[styles.subtitle, dynamicStyles.subtitle]}>{t('login_to_account')}</Text>
+          <Text style={[styles.title, { color: theme === 'dark' ? '#FFF' : BRAND.text }]}>
+            {t('welcome_back')} 🏘️
+          </Text>
+          <Text style={[styles.subtitle, { color: theme === 'dark' ? '#AAA' : BRAND.textLight }]}>
+            {t('login_to_account')}
+          </Text>
         </View>
+        
         <View style={styles.form}>
-          <Text style={[styles.label, dynamicStyles.label]}>{t('phone_number')}</Text>
+          <Text style={[styles.label, { color: theme === 'dark' ? '#DDD' : BRAND.text }]}>
+            {t('phone_number')}
+          </Text>
           <TextInput
-            style={[styles.input, dynamicStyles.input]}
+            style={[
+              styles.input, 
+              { 
+                backgroundColor: theme === 'dark' ? '#2C2C2C' : BRAND.white,
+                borderColor: theme === 'dark' ? '#444' : '#E5E7EB',
+                color: theme === 'dark' ? '#FFF' : BRAND.text
+              }
+            ]}
             placeholder={t('phone_placeholder')}
-            placeholderTextColor={theme === 'dark' ? '#888' : '#9ca3af'}
+            placeholderTextColor={theme === 'dark' ? '#888' : '#9CA3AF'}
             keyboardType="phone-pad"
             value={phone}
             onChangeText={setPhone}
           />
-          <Text style={[styles.label, dynamicStyles.label]}>{t('password')}</Text>
+          
+          <Text style={[styles.label, { color: theme === 'dark' ? '#DDD' : BRAND.text }]}>
+            {t('password')}
+          </Text>
           <TextInput
-            style={[styles.input, dynamicStyles.input]}
+            style={[
+              styles.input, 
+              { 
+                backgroundColor: theme === 'dark' ? '#2C2C2C' : BRAND.white,
+                borderColor: theme === 'dark' ? '#444' : '#E5E7EB',
+                color: theme === 'dark' ? '#FFF' : BRAND.text
+              }
+            ]}
             placeholder={t('password_placeholder')}
-            placeholderTextColor={theme === 'dark' ? '#888' : '#9ca3af'}
+            placeholderTextColor={theme === 'dark' ? '#888' : '#9CA3AF'}
             secureTextEntry
             value={password}
             onChangeText={setPassword}
           />
-          <TouchableOpacity style={[styles.btn, dynamicStyles.btn]} onPress={handleLogin} disabled={loading}>
+          
+          <TouchableOpacity 
+            style={[styles.btn, { backgroundColor: BRAND.primary }]} 
+            onPress={handleLogin} 
+            disabled={loading}
+          >
             {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{t('login')}</Text>}
           </TouchableOpacity>
+          
           <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-            <Text style={[styles.linkText, dynamicStyles.linkText]}>
-              {t('no_account')} <Text style={[styles.link, dynamicStyles.link]}>{t('register')}</Text>
+            <Text style={[styles.linkText, { color: theme === 'dark' ? '#AAA' : BRAND.textLight }]}>
+              {t('no_account')} <Text style={[styles.link, { color: BRAND.primary }]}>{t('register')}</Text>
             </Text>
           </TouchableOpacity>
         </View>
@@ -118,7 +150,7 @@ const styles = StyleSheet.create({
   },
   backBtn: { padding: 8 },
   backBtnText: { fontSize: 16, fontWeight: '600' },
-  langBtn: { backgroundColor: '#e5e7eb', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
+  langBtn: { backgroundColor: '#E5E7EB', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
   langBtnText: { fontSize: 14, fontWeight: '600', color: '#111' },
   inner: { flex: 1, paddingHorizontal: 24, justifyContent: 'center' },
   header: { marginBottom: 32 },
