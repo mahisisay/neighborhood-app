@@ -1,13 +1,14 @@
 // =============================================
 //  src/screens/SettingsScreen.js
 //  COMPLETE - Working Language, Theme, and About Page
+//  REMOVED: Role Switcher (now handled by RoleSelectScreen)
 // =============================================
 
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView,
   TouchableOpacity, ScrollView, Alert,
-  Modal, ActivityIndicator
+  Modal
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
@@ -26,9 +27,8 @@ const BRAND = {
 };
 
 export default function SettingsScreen({ navigation }) {
-  const { logout, user, switchRole, getAvailableRoles } = useAuth();
+  const { logout } = useAuth();
   const { theme, language, updateTheme, updateLanguage, t } = useSettings();
-  const [switching, setSwitching] = useState(false);
   const [showLanguage, setShowLanguage] = useState(false);
 
   const handleThemeToggle = () => {
@@ -36,27 +36,6 @@ export default function SettingsScreen({ navigation }) {
     updateTheme(newTheme);
   };
 
-  const handleSwitchRole = async (newRole) => {
-    setSwitching(true);
-    try {
-      const success = await switchRole(newRole);
-      if (success) {
-        Alert.alert(
-          'Role Switched',
-          `You are now in ${newRole === 'seeker' ? '🔍 Seeker' : '👷 Provider'} mode`,
-          [{ text: 'OK', onPress: () => navigation.goBack() }]
-        );
-      } else {
-        Alert.alert('Error', 'Could not switch role. Please try again.');
-      }
-    } catch (error) {
-      Alert.alert('Error', error.message);
-    } finally {
-      setSwitching(false);
-    }
-  };
-
-  const hasBothRoles = user?.has_both_roles === true || user?.has_both_roles === 1;
   const isDark = theme === 'dark';
 
   return (
@@ -67,51 +46,6 @@ export default function SettingsScreen({ navigation }) {
             <Text style={[styles.backBtn, { color: BRAND.primary }]}>← {t('settings') || 'Settings'}</Text>
           </TouchableOpacity>
         </View>
-
-        {/* Role Switcher Section */}
-        {hasBothRoles && (
-          <>
-            <Text style={[styles.sectionTitle, { color: isDark ? '#AAA' : BRAND.textLight }]}>🔄 {t('switch_role') || 'Switch Role'}</Text>
-            <View style={[styles.roleSwitcherCard, { backgroundColor: isDark ? '#1E3A5F' : BRAND.primaryLight }]}>
-              <Text style={[styles.roleSwitcherTitle, { color: isDark ? '#FFF' : BRAND.text }]}>
-                {t('current_mode') || 'Current Mode'}: {user?.active_role === 'seeker' ? '🔍 Seeker' : '👷 Provider'}
-              </Text>
-              <Text style={[styles.roleSwitcherDesc, { color: isDark ? '#AAA' : BRAND.textLight }]}>
-                {t('both_roles_desc') || 'You have both roles. Switch between them anytime.'}
-              </Text>
-              <View style={styles.roleButtonsRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.roleSwitchBtn,
-                    user?.active_role === 'seeker' && { backgroundColor: BRAND.primary }
-                  ]}
-                  onPress={() => handleSwitchRole('seeker')}
-                  disabled={switching || user?.active_role === 'seeker'}
-                >
-                  {switching ? (
-                    <ActivityIndicator size="small" color={BRAND.primary} />
-                  ) : (
-                    <Text style={user?.active_role === 'seeker' ? styles.roleSwitchTextActive : [styles.roleSwitchText, { color: BRAND.text }]}>
-                      🔍 {t('seeker_mode') || 'Seeker Mode'}
-                    </Text>
-                  )}
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.roleSwitchBtn,
-                    user?.active_role === 'provider' && { backgroundColor: BRAND.primary }
-                  ]}
-                  onPress={() => handleSwitchRole('provider')}
-                  disabled={switching || user?.active_role === 'provider'}
-                >
-                  <Text style={user?.active_role === 'provider' ? styles.roleSwitchTextActive : [styles.roleSwitchText, { color: BRAND.text }]}>
-                    👷 {t('provider_mode') || 'Provider Mode'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </>
-        )}
 
         {/* App Settings Section */}
         <Text style={[styles.sectionTitle, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('app_settings') || 'App Settings'}</Text>
@@ -205,13 +139,6 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 8 },
   card: { borderRadius: 14, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
   dangerCard: { borderRadius: 14, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
-  roleSwitcherCard: { borderRadius: 14, padding: 16, gap: 12, marginBottom: 8 },
-  roleSwitcherTitle: { fontSize: 16, fontWeight: 'bold' },
-  roleSwitcherDesc: { fontSize: 13 },
-  roleButtonsRow: { flexDirection: 'row', gap: 12, marginTop: 8 },
-  roleSwitchBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', backgroundColor: '#E5E7EB' },
-  roleSwitchText: { fontSize: 14 },
-  roleSwitchTextActive: { fontSize: 14, color: '#FFF', fontWeight: 'bold' },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14 },
   rowLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowIcon: { fontSize: 20 },

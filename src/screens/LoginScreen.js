@@ -1,7 +1,7 @@
 // =============================================
 //  src/screens/LoginScreen.js
 //  BRAND COLORS: Ethiopian Green (#2E7D32) + Gold (#F9A825)
-//  ADDED: Forgot Password link
+//  ADDED: Forgot Password link & Password visibility toggle
 // =============================================
 
 import React, { useState } from 'react';
@@ -33,6 +33,7 @@ export default function LoginScreen({ navigation }) {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const toggleLanguage = () => {
     updateLanguage(language === 'en' ? 'am' : 'en');
@@ -102,21 +103,27 @@ export default function LoginScreen({ navigation }) {
           <Text style={[styles.label, { color: theme === 'dark' ? '#DDD' : BRAND.text }]}>
             {t('password')}
           </Text>
-          <TextInput
-            style={[
-              styles.input, 
-              { 
-                backgroundColor: theme === 'dark' ? '#2C2C2C' : BRAND.white,
-                borderColor: theme === 'dark' ? '#444' : '#E5E7EB',
-                color: theme === 'dark' ? '#FFF' : BRAND.text
-              }
-            ]}
-            placeholder={t('password_placeholder')}
-            placeholderTextColor={theme === 'dark' ? '#888' : '#9CA3AF'}
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-          />
+          <View style={[
+            styles.passwordContainer,
+            { 
+              backgroundColor: theme === 'dark' ? '#2C2C2C' : BRAND.white,
+              borderColor: theme === 'dark' ? '#444' : '#E5E7EB',
+            }
+          ]}>
+            <TextInput
+              style={[styles.passwordInput, { color: theme === 'dark' ? '#FFF' : BRAND.text }]}
+              placeholder={t('password_placeholder')}
+              placeholderTextColor={theme === 'dark' ? '#888' : '#9CA3AF'}
+              secureTextEntry={!showPassword}
+              value={password}
+              onChangeText={setPassword}
+            />
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+              <Text style={{ fontSize: 18, color: theme === 'dark' ? '#AAA' : BRAND.textLight }}>
+                {showPassword ? '👁️' : '👁️‍🗨️'}
+              </Text>
+            </TouchableOpacity>
+          </View>
           
           <TouchableOpacity 
             style={[styles.btn, { backgroundColor: BRAND.primary }]} 
@@ -163,6 +170,9 @@ const styles = StyleSheet.create({
   form: { gap: 12 },
   label: { fontSize: 14, fontWeight: '600' },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15 },
+  passwordContainer: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 12, paddingHorizontal: 16 },
+  passwordInput: { flex: 1, paddingVertical: 14, fontSize: 15 },
+  eyeIcon: { padding: 8 },
   btn: { borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
   btnText: { color: '#fff', fontSize: 17, fontWeight: 'bold' },
   forgotText: { textAlign: 'center', marginTop: 4, fontSize: 13, fontWeight: '500' },

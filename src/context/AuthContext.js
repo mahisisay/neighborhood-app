@@ -1,7 +1,7 @@
 // =============================================
 //  src/context/AuthContext.js
 //  Session management with expiry check on app start
-//  Also checks expiry before API calls
+//  UPDATED: Added role flags for Seeker/Provider selection
 // =============================================
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
@@ -110,53 +110,20 @@ export function AuthProvider({ children }) {
     return true;
   }
 
-  async function switchRole(newRole) {
-    if (!user || !token) return false;
-    
-    try {
-      const response = await fetch(`${BASE_URL}/api/auth/switch-role`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ role: newRole })
-      });
-      
-      const data = await response.json();
-      
-      if (response.ok) {
-        const updatedUser = { ...user, active_role: newRole, role: newRole };
-        await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
-        setUser(updatedUser);
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.log('Role switch error:', error);
-      return false;
-    }
+  // Helper to check if user has provider role
+  function hasProviderRole() {
+    return user?.hasProviderRole === true || user?.role === 'provider';
   }
 
-  function canSwitchTo(role) {
-    if (!user) return false;
-    return user.has_both_roles === true || user.has_both_roles === 1;
-  }
-
-  function getAvailableRoles() {
-    if (!user) return [];
-    if (user.has_both_roles || user.has_both_roles === 1) {
-      return [
-        { role: 'seeker', label: '🔍 Seeker Mode', description: 'Request services' },
-        { role: 'provider', label: '👷 Provider Mode', description: 'Offer services' }
-      ];
-    }
-    return [{ role: user.role, label: user.role === 'seeker' ? '🔍 Seeker' : '👷 Provider', description: '' }];
+  // Helper to check if user has seeker role
+  function hasSeekerRole() {
+    return user?.hasSeekerRole === true || user?.role === 'seeker';
   }
 
   return (
     <AuthContext.Provider value={{ 
-      user, token, loading, login, logout, checkSession, switchRole, canSwitchTo, getAvailableRoles
+      user, token, loading, login, logout, checkSession,
+      hasProviderRole, hasSeekerRole
     }}>
       {children}
     </AuthContext.Provider>

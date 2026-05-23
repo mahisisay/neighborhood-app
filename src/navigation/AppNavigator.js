@@ -1,6 +1,6 @@
 // =============================================
 //  src/navigation/AppNavigator.js — COMPLETE
-//  WITH RATE PROVIDER SCREEN & FORGOT PASSWORD
+//  WITH ROLE SELECTION SCREEN & FORGOT PASSWORD
 // =============================================
 
 import React from 'react';
@@ -16,6 +16,7 @@ import WelcomeScreen from '../screens/WelcomeScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
+import RoleSelectScreen from '../screens/RoleSelectScreen';
 
 // Seeker screens
 import HomeScreen from '../screens/HomeScreen';
@@ -205,7 +206,7 @@ function AdminTabs() {
 
 // ── Main navigator ────────────────────────────
 export default function AppNavigator() {
-  const { user, loading } = useAuth();
+  const { user, loading, hasProviderRole, hasSeekerRole } = useAuth();
 
   if (loading) {
     return (
@@ -227,13 +228,6 @@ export default function AppNavigator() {
             <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ headerShown: false }} />
             <Stack.Screen name="Home" component={HomeScreen} />
           </>
-        ) : user.role === 'provider' ? (
-          // Provider screens
-          <>
-            <Stack.Screen name="ProviderTabs" component={ProviderTabs} />
-            <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
-            <Stack.Screen name="About" component={AboutScreen} options={{ headerShown: false }} />
-          </>
         ) : user.role === 'admin' ? (
           // Admin screens
           <>
@@ -242,9 +236,11 @@ export default function AppNavigator() {
             <Stack.Screen name="About" component={AboutScreen} options={{ headerShown: false }} />
           </>
         ) : (
-          // Seeker screens
+          // Regular user (seeker/provider) - show role selection
           <>
+            <Stack.Screen name="RoleSelect" component={RoleSelectScreen} options={{ headerShown: false }} />
             <Stack.Screen name="SeekerTabs" component={SeekerTabs} />
+            <Stack.Screen name="ProviderTabs" component={ProviderTabs} />
             <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
             <Stack.Screen name="About" component={AboutScreen} options={{ headerShown: false }} />
             <Stack.Screen name="RateProvider" component={RateProviderScreen} options={{ headerShown: false }} />
