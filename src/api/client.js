@@ -1,15 +1,48 @@
 // =============================================
 //  src/api/client.js — COMPLETE
-//  Includes all existing + admin + subcategories
-//  FIXED: Added rejectProvider and all admin methods
+//  Checks token expiry before every API call
 // =============================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert } from 'react-native';
 
 export const BASE_URL = 'https://neighborhood-backend-production.up.railway.app';
 
+// Function to check if token is expired
+async function isTokenExpired() {
+  const token = await AsyncStorage.getItem('token');
+  if (!token) return true;
+  
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    
+    const payload = JSON.parse(jsonPayload);
+    const expiryTime = payload.exp * 1000;
+    const isExpired = Date.now() >= expiryTime;
+    
+    if (isExpired) {
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('user');
+      Alert.alert('Session Expired', 'Your session has expired. Please login again.');
+    }
+    
+    return isExpired;
+  } catch (e) {
+    return true;
+  }
+}
+
 // Helper function — makes API calls with auth token automatically
 async function apiCall(endpoint, method = 'GET', body = null) {
+  // Check token expiry before making request
+  if (await isTokenExpired()) {
+    throw new Error('Session expired. Please login again.');
+  }
+  
   const token = await AsyncStorage.getItem('token');
   const headers = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -17,6 +50,15 @@ async function apiCall(endpoint, method = 'GET', body = null) {
   if (body) config.body = JSON.stringify(body);
   const response = await fetch(`${BASE_URL}${endpoint}`, config);
   const data = await response.json();
+  
+  // Handle token expired response from backend
+  if (response.status === 401 && data.code === 'TOKEN_EXPIRED') {
+    await AsyncStorage.removeItem('token');
+    await AsyncStorage.removeItem('user');
+    Alert.alert('Session Expired', 'Please login again to continue.');
+    throw new Error('Session expired');
+  }
+  
   if (!response.ok) {
     throw new Error(data.message || 'Something went wrong');
   }
@@ -80,26 +122,13 @@ export const reviewAPI = {
 
 // ── Admin ─────────────────────────────────────
 export const adminAPI = {
-  // Dashboard & Stats
   getStats:        ()    => apiCall('/api/admin/stats'),
   getPending:      ()    => apiCall('/api/admin/providers/pending'),
-  
-  // Provider Management
   verifyProvider:  (id)  => apiCall(`/api/admin/providers/${id}/verify`, 'PATCH'),
   rejectProvider:  (id)  => apiCall(`/api/admin/providers/${id}/reject`, 'PATCH'),
-  
-  // User Management
   getAllUsers:     ()    => apiCall('/api/admin/users'),
   suspendUser:     (id)  => apiCall(`/api/admin/users/${id}/suspend`,    'PATCH'),
   reactivateUser:  (id)  => apiCall(`/api/admin/users/${id}/reactivate`, 'PATCH'),
-  
-  // Payment Monitoring
   getPayments:     ()    => apiCall('/api/admin/payments'),
-  
-  // Reports
   generateReport:  (type) => apiCall(`/api/admin/reports/${type}`),
-  
-  // Reviews Moderation
-  getAllReviews:   ()    => apiCall('/api/admin/reviews'),
-  deleteReview:    (id)  => apiCall(`/api/admin/reviews/${id}`, 'DELETE'),
 };
