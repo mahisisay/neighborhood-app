@@ -1,9 +1,6 @@
 // =============================================
 //  src/screens/RegisterScreen.js
-//  UPDATED: Full validation for all fields
-//  Phone: +2519XXXXXXXX format
-//  Password: min 6 chars with 1 number
-//  Name: min 2 chars, letters only
+//  PROFESSIONAL VERSION - Collapsible Categories, Grid Layout, Search
 // =============================================
 
 import React, { useState, useEffect } from 'react';
@@ -37,6 +34,39 @@ const BRAND = {
   success: '#10B981',
 };
 
+// Helper function to map service names to icons
+const getIconForService = (serviceName) => {
+  const iconMap = {
+    'Electrician': '⚡',
+    'Plumber': '💧',
+    'Carpenter': '🔨',
+    'Painter': '🎨',
+    'Appliance Repair': '🔧',
+    'House Cleaning': '🧹',
+    'Laundry Services': '👕',
+    'Compound Cleaning': '🌳',
+    'Office Cleaning': '🏢',
+    'Barber': '✂️',
+    'Makeup Artist': '💄',
+    'Tailor': '📏',
+    'Photographer': '📷',
+    'Event Helpers': '🎉',
+    'Private Tutor (Math)': '📐',
+    'Private Tutor (English)': '📖',
+    'Computer Training': '💻',
+    'Language Tutoring': '🗣️',
+    'Grocery Pickup': '🛒',
+    'Medicine Delivery': '💊',
+    'Document Delivery': '📄',
+    'Small Shopping': '🏪',
+    'Computer Repair': '🖥️',
+    'Phone Repair': '📱',
+    'Software Installation': '💿',
+    'Printing/IT Support': '🖨️'
+  };
+  return iconMap[serviceName] || '🔧';
+};
+
 export default function RegisterScreen({ navigation }) {
   const { t, theme, language, updateLanguage } = useSettings();
   const [name, setName] = useState('');
@@ -53,8 +83,40 @@ export default function RegisterScreen({ navigation }) {
   const [subcategories, setSubcategories] = useState([]);
   const [selectedServices, setSelectedServices] = useState([]);
   const [loadingServices, setLoadingServices] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [expandedCategories, setExpandedCategories] = useState({});
 
-  // Live validation on field change
+  // Load subcategories when role changes to provider or both
+  useEffect(() => {
+    if (role === 'provider' || registerBoth) {
+      loadSubcategories();
+    } else {
+      setSelectedServices([]);
+      setExpandedCategories({});
+    }
+  }, [role, registerBoth]);
+
+  async function loadSubcategories() {
+    setLoadingServices(true);
+    try {
+      const data = await subcategoryAPI.getAll();
+      setSubcategories(data.subcategories || []);
+      // Initialize all categories as expanded by default
+      const categories = {};
+      data.subcategories.forEach(sub => {
+        if (sub.category_name && !categories[sub.category_name]) {
+          categories[sub.category_name] = true;
+        }
+      });
+      setExpandedCategories(categories);
+    } catch (err) {
+      console.log('Error loading subcategories:', err);
+    } finally {
+      setLoadingServices(false);
+    }
+  }
+
+  // Live validation
   useEffect(() => {
     const errors = {};
     const nameErr = getNameError(name);
@@ -65,26 +127,6 @@ export default function RegisterScreen({ navigation }) {
     if (passwordErr) errors.password = passwordErr;
     setValidationErrors(errors);
   }, [name, phone, password]);
-
-  useEffect(() => {
-    if (role === 'provider' || registerBoth) {
-      loadSubcategories();
-    } else {
-      setSelectedServices([]);
-    }
-  }, [role, registerBoth]);
-
-  async function loadSubcategories() {
-    setLoadingServices(true);
-    try {
-      const data = await subcategoryAPI.getAll();
-      setSubcategories(data.subcategories || []);
-    } catch (err) {
-      console.log('Error loading subcategories:', err);
-    } finally {
-      setLoadingServices(false);
-    }
-  }
 
   const toggleLanguage = () => {
     updateLanguage(language === 'en' ? 'am' : 'en');
@@ -104,6 +146,20 @@ export default function RegisterScreen({ navigation }) {
     } else {
       setSelectedServices([...selectedServices, subcategoryId]);
     }
+  }
+
+  function toggleCategory(categoryName) {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [categoryName]: !prev[categoryName]
+    }));
+  }
+
+  function getFilteredSubcategories(services) {
+    if (!searchQuery) return services;
+    return services.filter(service => 
+      service.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
   }
 
   async function uploadDocuments() {
@@ -150,7 +206,6 @@ export default function RegisterScreen({ navigation }) {
   }
 
   async function handleRegister() {
-    // Final validation before submission
     const errors = validateRegisterForm({
       name,
       phone,
@@ -264,7 +319,6 @@ export default function RegisterScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          {/* Both Roles Option */}
           <TouchableOpacity
             style={[styles.bothRolesCard, registerBoth && styles.bothRolesCardActive]}
             onPress={() => { setRegisterBoth(true); setRole('seeker'); }}
@@ -315,29 +369,101 @@ export default function RegisterScreen({ navigation }) {
               
               <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : BRAND.text }]}>Select Your Services</Text>
               <Text style={[styles.sectionDesc, { color: isDark ? '#AAA' : BRAND.textLight }]}>Choose all services you offer</Text>
-              
+
+              {/* Search Bar */}
+              <View style={[styles.searchContainer, { backgroundColor: isDark ? '#2C2C2C' : '#F3F4F6' }]}>
+                <Text style={styles.searchIcon}>🔍</Text>
+                <TextInput
+                  style={[styles.searchInput, { color: isDark ? '#FFF' : BRAND.text }]}
+                  placeholder="Search services..."
+                  placeholderTextColor={isDark ? '#888' : BRAND.textLight}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
+                {searchQuery !== '' && (
+                  <TouchableOpacity onPress={() => setSearchQuery('')}>
+                    <Text style={styles.clearIcon}>✕</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Selected Count Badge */}
+              {selectedServices.length > 0 && (
+                <View style={[styles.selectedBadge, { backgroundColor: BRAND.primaryLight }]}>
+                  <Text style={[styles.selectedBadgeText, { color: BRAND.primary }]}>
+                    ✅ {selectedServices.length} service(s) selected
+                  </Text>
+                </View>
+              )}
+
               {loadingServices ? (
                 <ActivityIndicator size="large" color={BRAND.primary} style={{ marginVertical: 20 }} />
               ) : (
-                Object.entries(groupedSubcategories).map(([categoryName, services]) => (
-                  <View key={categoryName} style={styles.categoryGroup}>
-                    <Text style={[styles.categoryTitle, { color: BRAND.primary }]}>{categoryName}</Text>
-                    <View style={styles.servicesGrid}>
-                      {services.map(service => (
-                        <TouchableOpacity
-                          key={service.id}
-                          style={[styles.serviceBtn, selectedServices.includes(service.id) && styles.serviceBtnSelected]}
-                          onPress={() => toggleService(service.id)}
-                        >
-                          <Text style={styles.serviceIcon}>{service.icon || '📌'}</Text>
-                          <Text style={[styles.serviceName, selectedServices.includes(service.id) && styles.serviceNameSelected]}>
-                            {service.name}
+                Object.entries(groupedSubcategories).map(([categoryName, services]) => {
+                  const filteredServices = getFilteredSubcategories(services);
+                  const isExpanded = expandedCategories[categoryName];
+                  const selectedCount = services.filter(s => selectedServices.includes(s.id)).length;
+                  
+                  if (filteredServices.length === 0 && searchQuery) return null;
+                  
+                  return (
+                    <View key={categoryName} style={[styles.categoryCard, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
+                      <TouchableOpacity 
+                        style={styles.categoryHeader} 
+                        onPress={() => toggleCategory(categoryName)}
+                        activeOpacity={0.7}
+                      >
+                        <View style={styles.categoryTitleRow}>
+                          <Text style={styles.categoryHeaderIcon}>📁</Text>
+                          <Text style={[styles.categoryHeaderText, { color: isDark ? '#FFF' : BRAND.text }]}>
+                            {categoryName}
                           </Text>
-                        </TouchableOpacity>
-                      ))}
+                          {selectedCount > 0 && (
+                            <View style={[styles.selectedCountBadge, { backgroundColor: BRAND.primary }]}>
+                              <Text style={styles.selectedCountText}>{selectedCount}</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text style={[styles.categoryArrow, { color: BRAND.primary }]}>
+                          {isExpanded ? '▲' : '▼'}
+                        </Text>
+                      </TouchableOpacity>
+                      
+                      {isExpanded && (
+                        <View style={styles.servicesGridContainer}>
+                          <View style={styles.servicesGrid}>
+                            {filteredServices.map(service => (
+                              <TouchableOpacity
+                                key={service.id}
+                                style={[
+                                  styles.serviceCard,
+                                  { backgroundColor: isDark ? '#2C2C2C' : '#F3F4F6' },
+                                  selectedServices.includes(service.id) && { backgroundColor: BRAND.primary }
+                                ]}
+                                onPress={() => toggleService(service.id)}
+                                activeOpacity={0.6}
+                              >
+                                <Text style={styles.serviceIcon}>
+                                  {service.icon || getIconForService(service.name)}
+                                </Text>
+                                <Text style={[
+                                  styles.serviceName,
+                                  { color: isDark ? '#CCC' : BRAND.text },
+                                  selectedServices.includes(service.id) && { color: '#FFF' }
+                                ]}>
+                                  {service.name}
+                                </Text>
+                                {selectedServices.includes(service.id) && (
+                                  <Text style={styles.serviceCheck}>✓</Text>
+                                )}
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        </View>
+                      )}
                     </View>
-                  </View>
-                ))
+                  );
+                })
               )}
               
               <View style={styles.divider} />
@@ -452,14 +578,29 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: '#E5E7EB', marginVertical: 8 },
   sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 4, color: '#111' },
   sectionDesc: { fontSize: 13, lineHeight: 18, marginBottom: 12, color: '#6B7280' },
-  categoryGroup: { marginBottom: 16 },
-  categoryTitle: { fontSize: 14, fontWeight: 'bold', marginBottom: 8, color: '#2E7D32' },
-  servicesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  serviceBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, marginRight: 8, marginBottom: 8, backgroundColor: '#F3F4F6' },
-  serviceBtnSelected: { backgroundColor: '#2E7D32' },
-  serviceIcon: { fontSize: 14 },
-  serviceName: { fontSize: 12, color: '#374151' },
-  serviceNameSelected: { color: '#FFF' },
+  
+  // Professional Service Selection Styles
+  searchContainer: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, paddingHorizontal: 12, marginBottom: 16, borderWidth: 1, borderColor: '#E5E7EB' },
+  searchIcon: { fontSize: 16, marginRight: 8, color: '#9CA3AF' },
+  searchInput: { flex: 1, paddingVertical: 10, fontSize: 14 },
+  clearIcon: { fontSize: 16, color: '#9CA3AF', padding: 8 },
+  selectedBadge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, marginBottom: 16 },
+  selectedBadgeText: { fontSize: 13, fontWeight: '600' },
+  categoryCard: { borderRadius: 12, marginBottom: 12, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 2 },
+  categoryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14 },
+  categoryTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  categoryHeaderIcon: { fontSize: 20 },
+  categoryHeaderText: { fontSize: 15, fontWeight: '600' },
+  selectedCountBadge: { minWidth: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+  selectedCountText: { color: '#FFF', fontSize: 11, fontWeight: 'bold' },
+  categoryArrow: { fontSize: 12, fontWeight: '600' },
+  servicesGridContainer: { paddingHorizontal: 16, paddingBottom: 16 },
+  servicesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  serviceCard: { width: '31%', borderRadius: 10, paddingVertical: 12, paddingHorizontal: 8, alignItems: 'center', position: 'relative' },
+  serviceIcon: { fontSize: 22, marginBottom: 6 },
+  serviceName: { fontSize: 11, textAlign: 'center', fontWeight: '500' },
+  serviceCheck: { position: 'absolute', top: 4, right: 8, fontSize: 12, color: '#FFF', fontWeight: 'bold' },
+  
   uploadBtn: { borderWidth: 2, borderStyle: 'dashed', borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginBottom: 12, borderColor: '#D1D5DB', backgroundColor: '#F9FAFB' },
   uploadBtnDone: { borderColor: '#10B981', backgroundColor: '#E8F5E9' },
   uploadBtnText: { fontSize: 15, color: '#6B7280' },
