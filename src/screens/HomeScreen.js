@@ -1,4 +1,5 @@
-// src/screens/HomeScreen.js - Responsive Version
+// src/screens/HomeScreen.js - SIMPLIFIED VERSION (NO RESPONSIVE)
+// Use this temporarily to get the app working
 
 import React, { useEffect, useState } from 'react';
 import {
@@ -9,7 +10,6 @@ import {
 import { requestAPI, subcategoryAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
-import { getGridColumns, moderateScale, getFontSize, getSpacing, SCREEN_WIDTH } from '../utils/responsive';
 
 const BRAND = {
   primary: '#2E7D32',
@@ -52,8 +52,6 @@ export default function HomeScreen({ navigation }) {
   const [loadingSubs, setLoadingSubs] = useState(false);
   const [modalSearchQuery, setModalSearchQuery] = useState('');
 
-  const columns = getGridColumns();
-  const cardWidth = (SCREEN_WIDTH - getSpacing(2) * (columns + 1)) / columns;
   const isDark = theme === 'dark';
 
   useEffect(() => {
@@ -65,7 +63,7 @@ export default function HomeScreen({ navigation }) {
       const data = await requestAPI.getCategories();
       setCategories(data.categories);
     } catch (err) {
-      Alert.alert(t('error'), t('could_not_load_categories') || 'Could not load categories');
+      Alert.alert(t('error'), 'Could not load categories');
     } finally {
       setLoading(false);
     }
@@ -99,11 +97,11 @@ export default function HomeScreen({ navigation }) {
     setModalVisible(false);
     if (!user) {
       Alert.alert(
-        t('login_required') || 'Login Required',
-        t('login_prompt') || 'Please login to post a service request.',
+        'Login Required',
+        'Please login to post a service request.',
         [
-          { text: t('cancel'), style: 'cancel' },
-          { text: t('login'), onPress: () => navigation.navigate('Login') },
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Login', onPress: () => navigation.navigate('Login') },
         ]
       );
       return;
@@ -117,38 +115,20 @@ export default function HomeScreen({ navigation }) {
   }
 
   const handleLogout = () => {
-    if (logout) {
-      logout();
-    } else {
-      Alert.alert(t('error'), t('logout_unavailable') || 'Logout function not available');
-    }
+    if (logout) logout();
+    else Alert.alert('Error', 'Logout function not available');
   };
 
   function renderCategory({ item }) {
     return (
       <TouchableOpacity
-        style={[styles.card, { 
-          backgroundColor: isDark ? '#1E1E1E' : BRAND.white,
-          width: cardWidth,
-          padding: moderateScale(16),
-          margin: moderateScale(8),
-        }]}
+        style={[styles.card, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}
         onPress={() => loadSubcategories(item.id, item.name)}
         activeOpacity={0.7}
       >
-        <Text style={[styles.cardIcon, { fontSize: moderateScale(36) }]}>
-          {ICON_MAP[item.icon] || '🔨'}
-        </Text>
-        <Text style={[styles.cardName, { 
-          color: isDark ? '#FFF' : BRAND.text,
-          fontSize: getFontSize(13),
-          marginTop: moderateScale(8),
-        }]}>
-          {item.name}
-        </Text>
-        <Text style={[styles.cardHint, { fontSize: getFontSize(10) }]}>
-          Tap to select →
-        </Text>
+        <Text style={styles.cardIcon}>{ICON_MAP[item.icon] || '🔨'}</Text>
+        <Text style={[styles.cardName, { color: isDark ? '#FFF' : BRAND.text }]}>{item.name}</Text>
+        <Text style={styles.cardHint}>Tap to select →</Text>
       </TouchableOpacity>
     );
   }
@@ -156,25 +136,12 @@ export default function HomeScreen({ navigation }) {
   function renderSubcategory({ item }) {
     return (
       <TouchableOpacity
-        style={[styles.subCard, { 
-          backgroundColor: isDark ? '#2C2C2C' : BRAND.primaryLight,
-          padding: moderateScale(12),
-          margin: moderateScale(6),
-          width: (SCREEN_WIDTH - getSpacing(4) * 3) / 2,
-        }]}
+        style={[styles.subCard, { backgroundColor: isDark ? '#2C2C2C' : BRAND.primaryLight }]}
         onPress={() => selectSubcategory(item)}
         activeOpacity={0.7}
       >
-        <Text style={[styles.subIcon, { fontSize: moderateScale(20) }]}>
-          {item.icon || getIconForService(item.name)}
-        </Text>
-        <Text style={[styles.subName, { 
-          color: isDark ? '#FFF' : BRAND.primary,
-          fontSize: getFontSize(12),
-          marginLeft: moderateScale(8),
-        }]}>
-          {item.name}
-        </Text>
+        <Text style={styles.subIcon}>{item.icon || getIconForService(item.name)}</Text>
+        <Text style={[styles.subName, { color: isDark ? '#FFF' : BRAND.primary }]}>{item.name}</Text>
       </TouchableOpacity>
     );
   }
@@ -183,67 +150,51 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#F9FAFB' }]}>
-      <View style={[styles.header, { 
-        backgroundColor: isDark ? '#1E1E1E' : BRAND.white,
-        paddingHorizontal: getSpacing(),
-        paddingVertical: moderateScale(12),
-      }]}>
+      <View style={[styles.header, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white, borderBottomColor: isDark ? '#333' : '#E5E7EB' }]}>
         <View>
-          <Text style={[styles.greeting, { 
-            color: isDark ? '#FFF' : BRAND.text,
-            fontSize: getFontSize(20),
-          }]}>
+          <Text style={[styles.greeting, { color: isDark ? '#FFF' : BRAND.text }]}>
             {user ? `Hello, ${user.name?.split(' ')[0]} 👋` : 'Hello Guest 👋'}
           </Text>
-          <Text style={[styles.subtitle, { 
-            color: isDark ? '#AAA' : BRAND.textLight,
-            fontSize: getFontSize(14),
-            marginTop: moderateScale(4),
-          }]}>
+          <Text style={[styles.subtitle, { color: isDark ? '#AAA' : BRAND.textLight }]}>
             What service do you need today?
           </Text>
         </View>
         {user && (
-          <View style={{ flexDirection: 'row', gap: moderateScale(8) }}>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
             <TouchableOpacity
-              style={[styles.mapBtn, { backgroundColor: BRAND.primaryLight, padding: moderateScale(8) }]}
+              style={[styles.mapBtn, { backgroundColor: BRAND.primaryLight }]}
               onPress={() => navigation.navigate('Map')}
             >
-              <Text style={[styles.mapBtnText, { color: BRAND.primary, fontSize: getFontSize(14) }]}>🗺️ Map</Text>
+              <Text style={[styles.mapBtnText, { color: BRAND.primary }]}>🗺️ Map</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.logoutBtn, { padding: moderateScale(8) }]}
+              style={[styles.logoutBtn, { backgroundColor: '#FEE2E2' }]}
               onPress={handleLogout}
             >
-              <Text style={[styles.logoutText, { color: BRAND.error, fontSize: getFontSize(14) }]}>Logout</Text>
+              <Text style={[styles.logoutText, { color: BRAND.error }]}>Logout</Text>
             </TouchableOpacity>
           </View>
         )}
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color={BRAND.primary} style={{ marginTop: moderateScale(40) }} />
+        <ActivityIndicator size="large" color={BRAND.primary} style={{ marginTop: 40 }} />
       ) : (
         <FlatList
           data={categories}
           renderItem={renderCategory}
           keyExtractor={(item) => item.id.toString()}
-          numColumns={columns}
-          contentContainerStyle={[styles.grid, { padding: getSpacing() }]}
+          numColumns={2}
+          contentContainerStyle={styles.grid}
+          columnWrapperStyle={styles.row}
           ListHeaderComponent={
-            <Text style={[styles.sectionTitle, { 
-              color: isDark ? '#CCC' : BRAND.textLight,
-              fontSize: getFontSize(16),
-              marginBottom: moderateScale(12),
-              paddingHorizontal: getSpacing(),
-            }]}>
+            <Text style={[styles.sectionTitle, { color: isDark ? '#CCC' : BRAND.textLight }]}>
               All Categories
             </Text>
           }
         />
       )}
 
-      {/* Subcategory Modal */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -251,42 +202,24 @@ export default function HomeScreen({ navigation }) {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { 
-            backgroundColor: isDark ? '#1E1E1E' : BRAND.white,
-            padding: getSpacing(),
-          }]}>
+          <View style={[styles.modalContent, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { 
-                color: isDark ? '#FFF' : BRAND.text,
-                fontSize: getFontSize(22),
-              }]}>
+              <Text style={[styles.modalTitle, { color: isDark ? '#FFF' : BRAND.text }]}>
                 {selectedCategory?.name || 'Services'}
               </Text>
               <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.modalCloseBtn}>
-                <Text style={[styles.modalClose, { fontSize: getFontSize(20) }]}>✕</Text>
+                <Text style={styles.modalClose}>✕</Text>
               </TouchableOpacity>
             </View>
             
-            <Text style={[styles.modalSubtitle, { 
-              color: BRAND.textLight,
-              fontSize: getFontSize(14),
-              marginBottom: moderateScale(16),
-            }]}>
+            <Text style={[styles.modalSubtitle, { color: BRAND.textLight }]}>
               Select a specific service
             </Text>
 
-            <View style={[styles.modalSearchContainer, { 
-              backgroundColor: isDark ? '#2C2C2C' : '#F3F4F6',
-              paddingHorizontal: moderateScale(12),
-              marginBottom: moderateScale(16),
-            }]}>
-              <Text style={[styles.modalSearchIcon, { fontSize: getFontSize(16) }]}>🔍</Text>
+            <View style={[styles.modalSearchContainer, { backgroundColor: isDark ? '#2C2C2C' : '#F3F4F6' }]}>
+              <Text style={styles.modalSearchIcon}>🔍</Text>
               <TextInput
-                style={[styles.modalSearchInput, { 
-                  color: isDark ? '#FFF' : BRAND.text,
-                  fontSize: getFontSize(14),
-                  paddingVertical: moderateScale(10),
-                }]}
+                style={[styles.modalSearchInput, { color: isDark ? '#FFF' : BRAND.text }]}
                 placeholder="Search services..."
                 placeholderTextColor={isDark ? '#888' : BRAND.textLight}
                 value={modalSearchQuery}
@@ -294,26 +227,22 @@ export default function HomeScreen({ navigation }) {
               />
               {modalSearchQuery !== '' && (
                 <TouchableOpacity onPress={() => setModalSearchQuery('')}>
-                  <Text style={[styles.modalClearIcon, { fontSize: getFontSize(16) }]}>✕</Text>
+                  <Text style={styles.modalClearIcon}>✕</Text>
                 </TouchableOpacity>
               )}
             </View>
 
             {loadingSubs ? (
-              <ActivityIndicator size="large" color={BRAND.primary} style={{ marginVertical: moderateScale(40) }} />
+              <ActivityIndicator size="large" color={BRAND.primary} style={{ marginVertical: 40 }} />
             ) : subcategories.length === 0 ? (
               <View style={styles.emptySubs}>
-                <Text style={[styles.emptyIcon, { fontSize: moderateScale(48) }]}>🔧</Text>
-                <Text style={[styles.emptyText, { color: BRAND.textLight, fontSize: getFontSize(14) }]}>
-                  No subcategories found
-                </Text>
+                <Text style={styles.emptyIcon}>🔧</Text>
+                <Text style={[styles.emptyText, { color: BRAND.textLight }]}>No subcategories found</Text>
               </View>
             ) : filteredSubcategories.length === 0 ? (
               <View style={styles.emptySubs}>
-                <Text style={[styles.emptyIcon, { fontSize: moderateScale(48) }]}>🔍</Text>
-                <Text style={[styles.emptyText, { color: BRAND.textLight, fontSize: getFontSize(14) }]}>
-                  No services match your search
-                </Text>
+                <Text style={styles.emptyIcon}>🔍</Text>
+                <Text style={[styles.emptyText, { color: BRAND.textLight }]}>No services match your search</Text>
               </View>
             ) : (
               <FlatList
@@ -321,6 +250,7 @@ export default function HomeScreen({ navigation }) {
                 renderItem={renderSubcategory}
                 keyExtractor={(item) => item.id.toString()}
                 numColumns={2}
+                columnWrapperStyle={styles.modalSubRow}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.modalListContent}
               />
@@ -338,19 +268,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
   },
-  greeting: { fontWeight: 'bold' },
-  subtitle: {},
-  mapBtn: { borderRadius: 20 },
+  greeting: { fontSize: 20, fontWeight: 'bold' },
+  subtitle: { fontSize: 14, marginTop: 2 },
+  mapBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
   mapBtnText: { fontWeight: '600' },
-  logoutBtn: { backgroundColor: '#FEE2E2', borderRadius: 20 },
+  logoutBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
   logoutText: { fontWeight: '600' },
-  sectionTitle: { fontWeight: '600' },
-  grid: {},
+  sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 12 },
+  grid: { padding: 16 },
+  row: { justifyContent: 'space-between', marginBottom: 12 },
   card: {
+    width: '48%',
     borderRadius: 16,
+    padding: 20,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -358,25 +293,27 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  cardIcon: {},
-  cardName: { fontWeight: '600', textAlign: 'center' },
-  cardHint: { color: '#9CA3AF', textAlign: 'center' },
+  cardIcon: { fontSize: 36, marginBottom: 10 },
+  cardName: { fontSize: 13, fontWeight: '600', textAlign: 'center', marginBottom: 4 },
+  cardHint: { fontSize: 10, color: '#9CA3AF', textAlign: 'center' },
+  
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '85%' },
+  modalContent: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '85%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  modalTitle: { fontWeight: 'bold' },
+  modalTitle: { fontSize: 22, fontWeight: 'bold' },
   modalCloseBtn: { padding: 8 },
-  modalClose: { fontWeight: '600', color: '#9CA3AF' },
-  modalSubtitle: {},
-  modalSearchContainer: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB' },
-  modalSearchIcon: { marginRight: 8, color: '#9CA3AF' },
-  modalSearchInput: { flex: 1 },
-  modalClearIcon: { color: '#9CA3AF', padding: 8 },
+  modalClose: { fontSize: 20, fontWeight: '600', color: '#9CA3AF' },
+  modalSubtitle: { fontSize: 14, marginBottom: 20 },
+  modalSearchContainer: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, paddingHorizontal: 12, marginBottom: 16, borderWidth: 1, borderColor: '#E5E7EB' },
+  modalSearchIcon: { fontSize: 16, marginRight: 8, color: '#9CA3AF' },
+  modalSearchInput: { flex: 1, paddingVertical: 10, fontSize: 14 },
+  modalClearIcon: { fontSize: 16, color: '#9CA3AF', padding: 8 },
+  modalSubRow: { justifyContent: 'space-between', marginBottom: 12 },
   modalListContent: { paddingBottom: 20 },
-  subCard: { borderRadius: 12, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
-  subIcon: {},
-  subName: { fontWeight: '500', textAlign: 'center', flex: 1 },
+  subCard: { borderRadius: 12, padding: 14, width: '48%', alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2, elevation: 1 },
+  subIcon: { fontSize: 20 },
+  subName: { fontSize: 13, fontWeight: '500', textAlign: 'center' },
   emptySubs: { alignItems: 'center', paddingVertical: 40 },
-  emptyIcon: { marginBottom: 12, opacity: 0.5 },
-  emptyText: { textAlign: 'center' },
+  emptyIcon: { fontSize: 48, marginBottom: 12, opacity: 0.5 },
+  emptyText: { fontSize: 14, textAlign: 'center' },
 });
