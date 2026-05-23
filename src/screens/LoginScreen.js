@@ -1,9 +1,4 @@
-// =============================================
-//  src/screens/LoginScreen.js
-//  BRAND COLORS: Ethiopian Green (#2E7D32) + Gold (#F9A825)
-//  ADDED: Forgot Password link & Password visibility toggle
-// =============================================
-
+// src/screens/LoginScreen.js
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
@@ -133,9 +128,8 @@ export default function LoginScreen({ navigation }) {
             {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{t('login')}</Text>}
           </TouchableOpacity>
           
-          {/* Forgot Password Link */}
           <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
-            <Text style={[styles.forgotText, { color: BRAND.primary }]}>Forgot Password?</Text>
+            <Text style={[styles.forgotText, { color: BRAND.primary }]}>{t('forgot_password')}</Text>
           </TouchableOpacity>
           
           <TouchableOpacity onPress={() => navigation.navigate('Register')}>

@@ -1,12 +1,8 @@
-// =============================================
-//  src/screens/RoleSelectScreen.js
-//  User chooses which role to use after login
-// =============================================
-
+// src/screens/RoleSelectScreen.js
 import React from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  SafeAreaView, Image
+  SafeAreaView
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
@@ -17,15 +13,16 @@ const BRAND = {
   text: '#374151',
   textLight: '#6B7280',
   white: '#FFFFFF',
+  error: '#DC2626',
 };
 
 export default function RoleSelectScreen({ navigation }) {
-  const { user, logout } = useAuth();
-  const { theme } = useSettings();
+  const { user, logout, hasProviderRole, hasSeekerRole } = useAuth();
+  const { theme, t } = useSettings();
   const isDark = theme === 'dark';
 
-  const hasProviderRole = user?.hasProviderRole === true;
-  const hasSeekerRole = user?.hasSeekerRole === true;
+  const canBeSeeker = hasSeekerRole();
+  const canBeProvider = hasProviderRole();
 
   const handleSelectSeeker = () => {
     navigation.replace('SeekerTabs');
@@ -39,39 +36,39 @@ export default function RoleSelectScreen({ navigation }) {
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#F9FAFB' }]}>
       <View style={styles.content}>
         <Text style={[styles.title, { color: isDark ? '#FFF' : BRAND.text }]}>
-          Welcome, {user?.name} 👋
+          {t('welcome_user')}, {user?.name} 👋
         </Text>
         <Text style={[styles.subtitle, { color: isDark ? '#AAA' : BRAND.textLight }]}>
-          Choose how you want to use the app
+          {t('choose_role')}
         </Text>
 
         <View style={styles.roleContainer}>
-          {hasSeekerRole && (
+          {canBeSeeker && (
             <TouchableOpacity
               style={[styles.roleCard, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}
               onPress={handleSelectSeeker}
             >
               <Text style={styles.roleIcon}>🔍</Text>
               <Text style={[styles.roleTitle, { color: isDark ? '#FFF' : BRAND.text }]}>
-                I Need a Service
+                {t('need_service')}
               </Text>
               <Text style={[styles.roleDesc, { color: isDark ? '#AAA' : BRAND.textLight }]}>
-                Find and request services from providers
+                {t('need_service_desc')}
               </Text>
             </TouchableOpacity>
           )}
 
-          {hasProviderRole && (
+          {canBeProvider && (
             <TouchableOpacity
               style={[styles.roleCard, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}
               onPress={handleSelectProvider}
             >
               <Text style={styles.roleIcon}>👷</Text>
               <Text style={[styles.roleTitle, { color: isDark ? '#FFF' : BRAND.text }]}>
-                I Offer Services
+                {t('offer_service')}
               </Text>
               <Text style={[styles.roleDesc, { color: isDark ? '#AAA' : BRAND.textLight }]}>
-                Offer your skills and accept jobs
+                {t('offer_service_desc')}
               </Text>
             </TouchableOpacity>
           )}
@@ -81,7 +78,7 @@ export default function RoleSelectScreen({ navigation }) {
           style={[styles.logoutBtn, { backgroundColor: isDark ? '#2C2C2C' : '#F3F4F6' }]}
           onPress={logout}
         >
-          <Text style={[styles.logoutText, { color: BRAND.error }]}>Logout</Text>
+          <Text style={[styles.logoutText, { color: BRAND.error }]}>{t('logout')}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

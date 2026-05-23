@@ -1,9 +1,4 @@
-// =============================================
-//  src/screens/SettingsScreen.js
-//  COMPLETE - Working Language, Theme, and About Page
-//  REMOVED: Role Switcher (now handled by RoleSelectScreen)
-// =============================================
-
+// src/screens/SettingsScreen.js
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView,
@@ -43,20 +38,20 @@ export default function SettingsScreen({ navigation }) {
       <ScrollView contentContainerStyle={styles.inner}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text style={[styles.backBtn, { color: BRAND.primary }]}>← {t('settings') || 'Settings'}</Text>
+            <Text style={[styles.backBtn, { color: BRAND.primary }]}>← {t('settings')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* App Settings Section */}
-        <Text style={[styles.sectionTitle, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('app_settings') || 'App Settings'}</Text>
+        <Text style={[styles.sectionTitle, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('app_settings')}</Text>
         <View style={[styles.card, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
           <TouchableOpacity style={styles.row} onPress={handleThemeToggle}>
             <View style={styles.rowLeft}>
               <Text style={styles.rowIcon}>{theme === 'light' ? '☀️' : '🌙'}</Text>
-              <Text style={[styles.rowLabel, { color: isDark ? '#FFF' : BRAND.text }]}>{t('app_theme') || 'App Theme'}</Text>
+              <Text style={[styles.rowLabel, { color: isDark ? '#FFF' : BRAND.text }]}>{t('app_theme')}</Text>
             </View>
             <Text style={[styles.rowValue, { color: isDark ? '#AAA' : BRAND.textLight }]}>
-              {theme === 'light' ? (t('light') || 'Light') : (t('dark') || 'Dark')} →
+              {theme === 'light' ? t('light') : t('dark')} →
             </Text>
           </TouchableOpacity>
 
@@ -65,7 +60,7 @@ export default function SettingsScreen({ navigation }) {
           <TouchableOpacity style={styles.row} onPress={() => setShowLanguage(true)}>
             <View style={styles.rowLeft}>
               <Text style={styles.rowIcon}>🌐</Text>
-              <Text style={[styles.rowLabel, { color: isDark ? '#FFF' : BRAND.text }]}>{t('app_language') || 'App Language'}</Text>
+              <Text style={[styles.rowLabel, { color: isDark ? '#FFF' : BRAND.text }]}>{t('app_language')}</Text>
             </View>
             <Text style={[styles.rowValue, { color: isDark ? '#AAA' : BRAND.textLight }]}>
               {language === 'en' ? 'English' : 'አማርኛ'} →
@@ -73,13 +68,13 @@ export default function SettingsScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* About Section - Navigates to About Screen */}
-        <Text style={[styles.sectionTitle, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('about') || 'About'}</Text>
+        {/* About Section */}
+        <Text style={[styles.sectionTitle, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('about')}</Text>
         <View style={[styles.card, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
           <TouchableOpacity style={styles.row} onPress={() => navigation.navigate('About')}>
             <View style={styles.rowLeft}>
               <Text style={styles.rowIcon}>ℹ️</Text>
-              <Text style={[styles.rowLabel, { color: isDark ? '#FFF' : BRAND.text }]}>{t('about_app') || 'About App'}</Text>
+              <Text style={[styles.rowLabel, { color: isDark ? '#FFF' : BRAND.text }]}>{t('about_app')}</Text>
             </View>
             <Text style={styles.rowArrow}>→</Text>
           </TouchableOpacity>
@@ -90,7 +85,7 @@ export default function SettingsScreen({ navigation }) {
           <TouchableOpacity style={styles.row} onPress={logout}>
             <View style={styles.rowLeft}>
               <Text style={styles.rowIcon}>🚪</Text>
-              <Text style={[styles.dangerLabel, { color: BRAND.error }]}>{t('logout') || 'Logout'}</Text>
+              <Text style={[styles.dangerLabel, { color: BRAND.error }]}>{t('logout')}</Text>
             </View>
             <Text style={styles.rowArrow}>→</Text>
           </TouchableOpacity>
@@ -101,7 +96,7 @@ export default function SettingsScreen({ navigation }) {
       <Modal visible={showLanguage} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={[styles.modal, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
-            <Text style={[styles.modalTitle, { color: isDark ? '#FFF' : BRAND.text }]}>{t('app_language') || 'Select Language'}</Text>
+            <Text style={[styles.modalTitle, { color: isDark ? '#FFF' : BRAND.text }]}>{t('app_language')}</Text>
 
             <TouchableOpacity
               style={[styles.langOption, language === 'en' && { borderColor: BRAND.primary, backgroundColor: BRAND.primaryLight }]}
@@ -122,7 +117,7 @@ export default function SettingsScreen({ navigation }) {
             </TouchableOpacity>
 
             <TouchableOpacity style={[styles.modalBtn, { backgroundColor: BRAND.primaryLight }]} onPress={() => setShowLanguage(false)}>
-              <Text style={[styles.modalBtnText, { color: BRAND.primary }]}>{t('cancel') || 'Cancel'}</Text>
+              <Text style={[styles.modalBtnText, { color: BRAND.primary }]}>{t('cancel')}</Text>
             </TouchableOpacity>
           </View>
         </View>

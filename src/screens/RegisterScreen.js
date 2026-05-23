@@ -1,6 +1,6 @@
 // =============================================
 //  src/screens/RegisterScreen.js
-//  FINAL FIXED VERSION - No more black screen
+//  FIXED: Service selection always shows for providers
 // =============================================
 
 import React, { useState, useEffect } from 'react';
@@ -34,35 +34,16 @@ const BRAND = {
   success: '#10B981',
 };
 
-// Helper function to map service names to icons
 const getIconForService = (serviceName) => {
   const iconMap = {
-    'Electrician': '⚡',
-    'Plumber': '💧',
-    'Carpenter': '🔨',
-    'Painter': '🎨',
-    'Appliance Repair': '🔧',
-    'House Cleaning': '🧹',
-    'Laundry Services': '👕',
-    'Compound Cleaning': '🌳',
-    'Office Cleaning': '🏢',
-    'Barber': '✂️',
-    'Makeup Artist': '💄',
-    'Tailor': '📏',
-    'Photographer': '📷',
-    'Event Helpers': '🎉',
-    'Private Tutor (Math)': '📐',
-    'Private Tutor (English)': '📖',
-    'Computer Training': '💻',
-    'Language Tutoring': '🗣️',
-    'Grocery Pickup': '🛒',
-    'Medicine Delivery': '💊',
-    'Document Delivery': '📄',
-    'Small Shopping': '🏪',
-    'Computer Repair': '🖥️',
-    'Phone Repair': '📱',
-    'Software Installation': '💿',
-    'Printing/IT Support': '🖨️'
+    'Electrician': '⚡', 'Plumber': '💧', 'Carpenter': '🔨', 'Painter': '🎨',
+    'Appliance Repair': '🔧', 'House Cleaning': '🧹', 'Laundry Services': '👕',
+    'Compound Cleaning': '🌳', 'Office Cleaning': '🏢', 'Barber': '✂️',
+    'Makeup Artist': '💄', 'Tailor': '📏', 'Photographer': '📷', 'Event Helpers': '🎉',
+    'Private Tutor (Math)': '📐', 'Private Tutor (English)': '📖', 'Computer Training': '💻',
+    'Language Tutoring': '🗣️', 'Grocery Pickup': '🛒', 'Medicine Delivery': '💊',
+    'Document Delivery': '📄', 'Small Shopping': '🏪', 'Computer Repair': '🖥️',
+    'Phone Repair': '📱', 'Software Installation': '💿', 'Printing/IT Support': '🖨️'
   };
   return iconMap[serviceName] || '🔧';
 };
@@ -73,7 +54,6 @@ export default function RegisterScreen({ navigation }) {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('seeker');
-  const [registerBoth, setRegisterBoth] = useState(false);
   const [experienceDescription, setExperienceDescription] = useState('');
   const [idPhoto, setIdPhoto] = useState(null);
   const [certificate, setCertificate] = useState(null);
@@ -85,39 +65,34 @@ export default function RegisterScreen({ navigation }) {
   const [loadingServices, setLoadingServices] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedCategories, setExpandedCategories] = useState({});
-  const [initialLoadDone, setInitialLoadDone] = useState(false);
 
-  // Load subcategories when role changes to provider or both
+  // Load subcategories when role changes to provider
   useEffect(() => {
-    if (role === 'provider' || registerBoth) {
+    if (role === 'provider') {
       loadSubcategories();
     } else {
       setSelectedServices([]);
-      setExpandedCategories({});
-      setInitialLoadDone(false);
     }
-  }, [role, registerBoth]);
+  }, [role]);
 
   async function loadSubcategories() {
     setLoadingServices(true);
     try {
       const data = await subcategoryAPI.getAll();
-      const subs = data.subcategories || [];
-      setSubcategories(subs);
+      console.log('Loaded subcategories:', data.subcategories?.length);
+      setSubcategories(data.subcategories || []);
       
-      // Initialize all categories as expanded by default
       const categories = {};
-      subs.forEach(sub => {
+      (data.subcategories || []).forEach(sub => {
         if (sub && sub.category_name && !categories[sub.category_name]) {
           categories[sub.category_name] = true;
         }
       });
       setExpandedCategories(categories);
-      setInitialLoadDone(true);
     } catch (err) {
       console.log('Error loading subcategories:', err);
+      Alert.alert('Error', 'Could not load services. Please check your connection.');
       setSubcategories([]);
-      setInitialLoadDone(true);
     } finally {
       setLoadingServices(false);
     }
@@ -163,10 +138,9 @@ export default function RegisterScreen({ navigation }) {
   }
 
   function getFilteredSubcategories(services) {
-    if (!services || !Array.isArray(services)) return [];
     if (!searchQuery) return services;
     return services.filter(service => 
-      service && service.name && service.name.toLowerCase().includes(searchQuery.toLowerCase())
+      service.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }
 
@@ -174,15 +148,11 @@ export default function RegisterScreen({ navigation }) {
     try {
       const formData = new FormData();
       formData.append('id_document', {
-        uri: idPhoto.uri,
-        type: 'image/jpeg',
-        name: 'id_document.jpg',
+        uri: idPhoto.uri, type: 'image/jpeg', name: 'id_document.jpg',
       });
       if (certificate) {
         formData.append('certificate', {
-          uri: certificate.uri,
-          type: 'image/jpeg',
-          name: 'certificate.jpg',
+          uri: certificate.uri, type: 'image/jpeg', name: 'certificate.jpg',
         });
       }
       if (experienceDescription) {
@@ -218,12 +188,17 @@ export default function RegisterScreen({ navigation }) {
   }
 
   async function handleRegister() {
+    if (role === 'provider' && selectedServices.length === 0) {
+      Alert.alert('Validation Error', 'Please select at least one service you offer');
+      return;
+    }
+
     const errors = validateRegisterForm({
       name,
       phone,
       password,
       role,
-      registerBoth,
+      registerBoth: false,
       idPhoto,
       selectedServices
     });
@@ -240,28 +215,9 @@ export default function RegisterScreen({ navigation }) {
     try {
       const formattedPhone = formatPhoneForDisplay(phone);
       
-      if (registerBoth) {
-        await authAPI.register({ name, phone: formattedPhone, password, role: 'seeker' });
-        await authAPI.register({ name, phone: formattedPhone, password, role: 'provider' });
-        await uploadDocuments();
-        
-        const token = await loginForUpload(formattedPhone, password);
-        await fetch(`${BASE_URL}/api/auth/mark-both-roles`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ has_both_roles: true })
-        });
-        
-        Alert.alert(
-          'Registration Successful',
-          'You are now registered as both Seeker and Provider!',
-          [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
-        );
-      } else if (role === 'provider') {
-        await authAPI.register({ name, phone: formattedPhone, password, role: 'provider' });
+      await authAPI.register({ name, phone: formattedPhone, password, role });
+      
+      if (role === 'provider') {
         await uploadDocuments();
         Alert.alert(
           'Registration Successful',
@@ -269,7 +225,6 @@ export default function RegisterScreen({ navigation }) {
           [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
         );
       } else {
-        await authAPI.register({ name, phone: formattedPhone, password, role: 'seeker' });
         Alert.alert(
           'Registration Successful',
           'You can now login to your account.',
@@ -283,39 +238,14 @@ export default function RegisterScreen({ navigation }) {
     }
   }
 
-  // SAFELY build grouped subcategories with null checks
-  const groupedSubcategories = React.useMemo(() => {
-    if (!subcategories || !Array.isArray(subcategories) || subcategories.length === 0) {
-      return {};
-    }
-    return subcategories.reduce((groups, sub) => {
-      if (!sub || !sub.category_name) return groups;
-      const catName = sub.category_name;
-      if (!groups[catName]) groups[catName] = [];
-      groups[catName].push(sub);
-      return groups;
-    }, {});
-  }, [subcategories]);
+  const groupedSubcategories = subcategories.reduce((groups, sub) => {
+    const catName = sub.category_name;
+    if (!groups[catName]) groups[catName] = [];
+    groups[catName].push(sub);
+    return groups;
+  }, {});
 
-  const needsProviderFields = role === 'provider' || registerBoth;
   const isDark = theme === 'dark';
-
-  // Loading state for provider fields
-  if (needsProviderFields && loadingServices && !initialLoadDone) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#F9FAFB' }]}>
-        <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Text style={[styles.backBtnText, { color: BRAND.primary }]}>← Back</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color={BRAND.primary} />
-          <Text style={{ marginTop: 20, color: isDark ? '#AAA' : BRAND.textLight }}>Loading services...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#F9FAFB' }]}>
@@ -338,34 +268,22 @@ export default function RegisterScreen({ navigation }) {
           <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>I am a</Text>
           <View style={styles.roleRow}>
             <TouchableOpacity
-              style={[styles.roleBtn, role === 'seeker' && !registerBoth && styles.roleBtnActive]}
-              onPress={() => { setRole('seeker'); setRegisterBoth(false); }}
+              style={[styles.roleBtn, role === 'seeker' && styles.roleBtnActive]}
+              onPress={() => setRole('seeker')}
             >
               <Text style={styles.roleIcon}>🔍</Text>
-              <Text style={[styles.roleText, role === 'seeker' && !registerBoth && styles.roleTextActive]}>Service Seeker</Text>
+              <Text style={[styles.roleText, role === 'seeker' && styles.roleTextActive]}>Service Seeker</Text>
               <Text style={[styles.roleDesc, { color: isDark ? '#888' : BRAND.textLight }]}>Need a service done</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.roleBtn, role === 'provider' && !registerBoth && styles.roleBtnActive]}
-              onPress={() => { setRole('provider'); setRegisterBoth(false); }}
+              style={[styles.roleBtn, role === 'provider' && styles.roleBtnActive]}
+              onPress={() => setRole('provider')}
             >
               <Text style={styles.roleIcon}>👷</Text>
-              <Text style={[styles.roleText, role === 'provider' && !registerBoth && styles.roleTextActive]}>Service Provider</Text>
+              <Text style={[styles.roleText, role === 'provider' && styles.roleTextActive]}>Service Provider</Text>
               <Text style={[styles.roleDesc, { color: isDark ? '#888' : BRAND.textLight }]}>Offer your skills</Text>
             </TouchableOpacity>
           </View>
-
-          <TouchableOpacity
-            style={[styles.bothRolesCard, registerBoth && styles.bothRolesCardActive]}
-            onPress={() => { setRegisterBoth(true); setRole('seeker'); }}
-          >
-            <Text style={styles.bothRolesIcon}>🔄</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.bothRolesTitle, { color: BRAND.primary }]}>Be Both!</Text>
-              <Text style={[styles.bothRolesDesc, { color: BRAND.textLight }]}>Register as both Seeker and Provider</Text>
-            </View>
-            {registerBoth && <Text style={styles.checkMark}>✅</Text>}
-          </TouchableOpacity>
 
           <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>Full Name</Text>
           <TextInput
@@ -399,12 +317,13 @@ export default function RegisterScreen({ navigation }) {
           />
           {validationErrors.password && <Text style={[styles.errorText, { color: BRAND.error }]}>{validationErrors.password}</Text>}
 
-          {needsProviderFields && (
+          {/* Provider-specific fields */}
+          {role === 'provider' && (
             <>
               <View style={styles.divider} />
               
               <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : BRAND.text }]}>Select Your Services</Text>
-              <Text style={[styles.sectionDesc, { color: isDark ? '#AAA' : BRAND.textLight }]}>Choose all services you offer</Text>
+              <Text style={[styles.sectionDesc, { color: isDark ? '#AAA' : BRAND.textLight }]}>Choose all services you offer (required)</Text>
 
               {/* Search Bar */}
               <View style={[styles.searchContainer, { backgroundColor: isDark ? '#2C2C2C' : '#F3F4F6' }]}>
@@ -434,10 +353,13 @@ export default function RegisterScreen({ navigation }) {
 
               {loadingServices ? (
                 <ActivityIndicator size="large" color={BRAND.primary} style={{ marginVertical: 20 }} />
-              ) : Object.keys(groupedSubcategories).length === 0 ? (
-                <Text style={{ textAlign: 'center', padding: 20, color: BRAND.textLight }}>
-                  No services available. Please check your connection.
-                </Text>
+              ) : subcategories.length === 0 ? (
+                <View style={{ padding: 20, alignItems: 'center' }}>
+                  <Text style={{ color: BRAND.error }}>⚠️ No services loaded</Text>
+                  <TouchableOpacity onPress={loadSubcategories} style={{ marginTop: 10 }}>
+                    <Text style={{ color: BRAND.primary }}>Retry</Text>
+                  </TouchableOpacity>
+                </View>
               ) : (
                 Object.entries(groupedSubcategories).map(([categoryName, services]) => {
                   const filteredServices = getFilteredSubcategories(services);
@@ -609,12 +531,6 @@ const styles = StyleSheet.create({
   roleText: { fontSize: 13, fontWeight: '600', color: '#374151' },
   roleTextActive: { color: '#2E7D32' },
   roleDesc: { fontSize: 11, marginTop: 2, color: '#6B7280' },
-  bothRolesCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1.5, borderRadius: 12, padding: 16, marginBottom: 8, borderColor: '#E5E7EB', backgroundColor: '#FFF' },
-  bothRolesCardActive: { borderColor: '#2E7D32', backgroundColor: '#E8F5E9' },
-  bothRolesIcon: { fontSize: 28 },
-  bothRolesTitle: { fontSize: 15, fontWeight: 'bold', color: '#2E7D32' },
-  bothRolesDesc: { fontSize: 12, color: '#6B7280' },
-  checkMark: { fontSize: 18 },
   divider: { height: 1, backgroundColor: '#E5E7EB', marginVertical: 8 },
   sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 4, color: '#111' },
   sectionDesc: { fontSize: 13, lineHeight: 18, marginBottom: 12, color: '#6B7280' },
