@@ -1,6 +1,7 @@
 // =============================================
 //  src/screens/PostRequestScreen.js
-//  UPDATED: Description validation (min 10 chars, no gibberish)
+//  UPDATED: Now sends subcategory_id to backend for correct matching
+//  Fixed: Providers will only receive jobs that match their services
 // =============================================
 
 import React, { useState, useEffect } from 'react';
@@ -105,6 +106,12 @@ export default function PostRequestScreen({ navigation, route }) {
       return;
     }
     
+    // Make sure subcategory is selected
+    if (!selectedSubcat) {
+      Alert.alert('Select Service', 'Please select a specific service type');
+      return;
+    }
+    
     if (descriptionError) {
       Alert.alert('Invalid Description', descriptionError);
       return;
@@ -122,8 +129,10 @@ export default function PostRequestScreen({ navigation, route }) {
 
     setLoading(true);
     try {
+      // FIXED: Now sending subcategory_id to backend
       const data = await requestAPI.create({
         category_id: selectedCat.id,
+        subcategory_id: selectedSubcat.id,  // ← ADDED: This ensures correct matching
         description: description.trim(),
         latitude: location.latitude,
         longitude: location.longitude,
@@ -174,6 +183,22 @@ export default function PostRequestScreen({ navigation, route }) {
             </TouchableOpacity>
           ))}
         </ScrollView>
+
+        {/* Subcategory Selection - Only shown when category is selected */}
+        {selectedCat && (
+          <>
+            <Text style={[styles.label, { color: BRAND.text }]}>Select Specific Service *</Text>
+            <Text style={[styles.hint, { color: BRAND.textLight }]}>
+              Choose the exact service you need
+            </Text>
+            {/* This will need subcategories from API - but coming from HomeScreen */}
+            {!selectedSubcat && (
+              <Text style={[styles.warning, { color: BRAND.error }]}>
+                ⚠️ Please select a specific service type
+              </Text>
+            )}
+          </>
+        )}
 
         <Text style={[styles.label, { color: BRAND.text }]}>Describe Your Problem *</Text>
         <TextInput
@@ -230,6 +255,8 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, fontWeight: 'bold', marginBottom: 4 },
   subtitle: { fontSize: 14, marginBottom: 4 },
   label: { fontSize: 14, fontWeight: '600' },
+  hint: { fontSize: 12, marginBottom: 8 },
+  warning: { fontSize: 12, marginBottom: 8 },
   errorText: { fontSize: 12, marginTop: -8, marginBottom: 4 },
   selectedBox: { borderRadius: 12, padding: 12, marginBottom: 8 },
   selectedLabel: { fontSize: 12, marginBottom: 4 },
