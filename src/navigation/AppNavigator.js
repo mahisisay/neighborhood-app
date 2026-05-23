@@ -1,6 +1,6 @@
 // =============================================
-//  src/navigation/AppNavigator.js — ULTIMATE FIX
-//  Complete isolation of native modules for web
+//  src/navigation/AppNavigator.js — COMPLETE
+//  Added About screen to 3-dot menu for all roles
 // =============================================
 
 import React from 'react';
@@ -32,6 +32,9 @@ import AdminDashboardScreen from '../screens/AdminDashboardScreen';
 
 // Settings screen
 import SettingsScreen from '../screens/SettingsScreen';
+
+// About screen
+import AboutScreen from '../screens/AboutScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -212,6 +215,7 @@ export default function AppNavigator() {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!user ? (
+          // Not logged in
           <>
             <Stack.Screen name="Welcome" component={WelcomeScreen} />
             <Stack.Screen name="Login" component={LoginScreen} />
@@ -219,19 +223,25 @@ export default function AppNavigator() {
             <Stack.Screen name="Home" component={HomeScreen} />
           </>
         ) : user.role === 'provider' ? (
+          // Provider screens
           <>
             <Stack.Screen name="ProviderTabs" component={ProviderTabs} />
             <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="About" component={AboutScreen} options={{ headerShown: false }} />
           </>
         ) : user.role === 'admin' ? (
+          // Admin screens
           <>
             <Stack.Screen name="AdminTabs" component={AdminTabs} />
             <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="About" component={AboutScreen} options={{ headerShown: false }} />
           </>
         ) : (
+          // Seeker screens
           <>
             <Stack.Screen name="SeekerTabs" component={SeekerTabs} />
             <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="About" component={AboutScreen} options={{ headerShown: false }} />
           </>
         )}
       </Stack.Navigator>

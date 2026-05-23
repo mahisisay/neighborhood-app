@@ -1,7 +1,6 @@
 // =============================================
 //  src/screens/SettingsScreen.js
-//  BRAND COLORS: Ethiopian Green (#2E7D32) + Gold (#F9A825)
-//  With Role Switcher for both roles
+//  COMPLETE - Working Language, Theme, and About Page
 // =============================================
 
 import React, { useState } from 'react';
@@ -30,7 +29,6 @@ export default function SettingsScreen({ navigation }) {
   const { logout, user, switchRole, getAvailableRoles } = useAuth();
   const { theme, language, updateTheme, updateLanguage, t } = useSettings();
   const [switching, setSwitching] = useState(false);
-  const [showAbout, setShowAbout] = useState(false);
   const [showLanguage, setShowLanguage] = useState(false);
 
   const handleThemeToggle = () => {
@@ -58,7 +56,6 @@ export default function SettingsScreen({ navigation }) {
     }
   };
 
-  const availableRoles = getAvailableRoles?.() || [];
   const hasBothRoles = user?.has_both_roles === true || user?.has_both_roles === 1;
   const isDark = theme === 'dark';
 
@@ -67,20 +64,20 @@ export default function SettingsScreen({ navigation }) {
       <ScrollView contentContainerStyle={styles.inner}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text style={[styles.backBtn, { color: BRAND.primary }]}>← Settings</Text>
+            <Text style={[styles.backBtn, { color: BRAND.primary }]}>← {t('settings') || 'Settings'}</Text>
           </TouchableOpacity>
         </View>
 
         {/* Role Switcher Section */}
         {hasBothRoles && (
           <>
-            <Text style={[styles.sectionTitle, { color: isDark ? '#AAA' : BRAND.textLight }]}>🔄 Switch Role</Text>
+            <Text style={[styles.sectionTitle, { color: isDark ? '#AAA' : BRAND.textLight }]}>🔄 {t('switch_role') || 'Switch Role'}</Text>
             <View style={[styles.roleSwitcherCard, { backgroundColor: isDark ? '#1E3A5F' : BRAND.primaryLight }]}>
               <Text style={[styles.roleSwitcherTitle, { color: isDark ? '#FFF' : BRAND.text }]}>
-                Current Mode: {user?.active_role === 'seeker' ? '🔍 Seeker' : '👷 Provider'}
+                {t('current_mode') || 'Current Mode'}: {user?.active_role === 'seeker' ? '🔍 Seeker' : '👷 Provider'}
               </Text>
               <Text style={[styles.roleSwitcherDesc, { color: isDark ? '#AAA' : BRAND.textLight }]}>
-                You have both roles. Switch between them anytime.
+                {t('both_roles_desc') || 'You have both roles. Switch between them anytime.'}
               </Text>
               <View style={styles.roleButtonsRow}>
                 <TouchableOpacity
@@ -95,7 +92,7 @@ export default function SettingsScreen({ navigation }) {
                     <ActivityIndicator size="small" color={BRAND.primary} />
                   ) : (
                     <Text style={user?.active_role === 'seeker' ? styles.roleSwitchTextActive : [styles.roleSwitchText, { color: BRAND.text }]}>
-                      🔍 Seeker Mode
+                      🔍 {t('seeker_mode') || 'Seeker Mode'}
                     </Text>
                   )}
                 </TouchableOpacity>
@@ -108,7 +105,7 @@ export default function SettingsScreen({ navigation }) {
                   disabled={switching || user?.active_role === 'provider'}
                 >
                   <Text style={user?.active_role === 'provider' ? styles.roleSwitchTextActive : [styles.roleSwitchText, { color: BRAND.text }]}>
-                    👷 Provider Mode
+                    👷 {t('provider_mode') || 'Provider Mode'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -117,15 +114,15 @@ export default function SettingsScreen({ navigation }) {
         )}
 
         {/* App Settings Section */}
-        <Text style={[styles.sectionTitle, { color: isDark ? '#AAA' : BRAND.textLight }]}>App Settings</Text>
+        <Text style={[styles.sectionTitle, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('app_settings') || 'App Settings'}</Text>
         <View style={[styles.card, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
           <TouchableOpacity style={styles.row} onPress={handleThemeToggle}>
             <View style={styles.rowLeft}>
-              <Text style={styles.rowIcon}>☀️</Text>
-              <Text style={[styles.rowLabel, { color: isDark ? '#FFF' : BRAND.text }]}>App Theme</Text>
+              <Text style={styles.rowIcon}>{theme === 'light' ? '☀️' : '🌙'}</Text>
+              <Text style={[styles.rowLabel, { color: isDark ? '#FFF' : BRAND.text }]}>{t('app_theme') || 'App Theme'}</Text>
             </View>
             <Text style={[styles.rowValue, { color: isDark ? '#AAA' : BRAND.textLight }]}>
-              {theme === 'light' ? 'Light' : 'Dark'} →
+              {theme === 'light' ? (t('light') || 'Light') : (t('dark') || 'Dark')} →
             </Text>
           </TouchableOpacity>
 
@@ -134,7 +131,7 @@ export default function SettingsScreen({ navigation }) {
           <TouchableOpacity style={styles.row} onPress={() => setShowLanguage(true)}>
             <View style={styles.rowLeft}>
               <Text style={styles.rowIcon}>🌐</Text>
-              <Text style={[styles.rowLabel, { color: isDark ? '#FFF' : BRAND.text }]}>App Language</Text>
+              <Text style={[styles.rowLabel, { color: isDark ? '#FFF' : BRAND.text }]}>{t('app_language') || 'App Language'}</Text>
             </View>
             <Text style={[styles.rowValue, { color: isDark ? '#AAA' : BRAND.textLight }]}>
               {language === 'en' ? 'English' : 'አማርኛ'} →
@@ -142,55 +139,35 @@ export default function SettingsScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* About Section */}
-        <Text style={[styles.sectionTitle, { color: isDark ? '#AAA' : BRAND.textLight }]}>About</Text>
+        {/* About Section - Navigates to About Screen */}
+        <Text style={[styles.sectionTitle, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('about') || 'About'}</Text>
         <View style={[styles.card, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
-          <TouchableOpacity style={styles.row} onPress={() => setShowAbout(true)}>
+          <TouchableOpacity style={styles.row} onPress={() => navigation.navigate('About')}>
             <View style={styles.rowLeft}>
               <Text style={styles.rowIcon}>ℹ️</Text>
-              <Text style={[styles.rowLabel, { color: isDark ? '#FFF' : BRAND.text }]}>About App</Text>
+              <Text style={[styles.rowLabel, { color: isDark ? '#FFF' : BRAND.text }]}>{t('about_app') || 'About App'}</Text>
             </View>
             <Text style={styles.rowArrow}>→</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Danger Zone */}
+        {/* Logout */}
         <View style={[styles.dangerCard, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
           <TouchableOpacity style={styles.row} onPress={logout}>
             <View style={styles.rowLeft}>
               <Text style={styles.rowIcon}>🚪</Text>
-              <Text style={[styles.dangerLabel, { color: BRAND.error }]}>Logout</Text>
+              <Text style={[styles.dangerLabel, { color: BRAND.error }]}>{t('logout') || 'Logout'}</Text>
             </View>
             <Text style={styles.rowArrow}>→</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
 
-      {/* About Modal */}
-      <Modal visible={showAbout} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modal, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
-            <Text style={[styles.modalTitle, { color: isDark ? '#FFF' : BRAND.text }]}>🏘️ Neighborhood Service Finder</Text>
-            <Text style={[styles.modalDesc, { color: isDark ? '#AAA' : BRAND.textLight }]}>
-              Connect with trusted local service providers in Gondar city.
-            </Text>
-            <View style={[styles.modalInfo, { backgroundColor: isDark ? '#2C2C2C' : '#F9FAFB' }]}>
-              <Text style={[styles.modalInfoRow, { color: isDark ? '#CCC' : BRAND.text }]}>Version: 1.0.0</Text>
-              <Text style={[styles.modalInfoRow, { color: isDark ? '#CCC' : BRAND.text }]}>Developer: Mahlat</Text>
-              <Text style={[styles.modalInfoRow, { color: isDark ? '#CCC' : BRAND.text }]}>📍 Gondar, Ethiopia</Text>
-            </View>
-            <TouchableOpacity style={[styles.modalBtn, { backgroundColor: BRAND.primaryLight }]} onPress={() => setShowAbout(false)}>
-              <Text style={[styles.modalBtnText, { color: BRAND.primary }]}>OK</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
       {/* Language Modal */}
       <Modal visible={showLanguage} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={[styles.modal, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
-            <Text style={[styles.modalTitle, { color: isDark ? '#FFF' : BRAND.text }]}>Select Language</Text>
+            <Text style={[styles.modalTitle, { color: isDark ? '#FFF' : BRAND.text }]}>{t('app_language') || 'Select Language'}</Text>
 
             <TouchableOpacity
               style={[styles.langOption, language === 'en' && { borderColor: BRAND.primary, backgroundColor: BRAND.primaryLight }]}
@@ -211,7 +188,7 @@ export default function SettingsScreen({ navigation }) {
             </TouchableOpacity>
 
             <TouchableOpacity style={[styles.modalBtn, { backgroundColor: BRAND.primaryLight }]} onPress={() => setShowLanguage(false)}>
-              <Text style={[styles.modalBtnText, { color: BRAND.primary }]}>Cancel</Text>
+              <Text style={[styles.modalBtnText, { color: BRAND.primary }]}>{t('cancel') || 'Cancel'}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -246,9 +223,6 @@ const styles = StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modal: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, gap: 16 },
   modalTitle: { fontSize: 18, fontWeight: 'bold', textAlign: 'center' },
-  modalDesc: { fontSize: 14, lineHeight: 22, textAlign: 'center' },
-  modalInfo: { borderRadius: 12, padding: 16, gap: 8 },
-  modalInfoRow: { fontSize: 14 },
   modalBtn: { borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
   modalBtnText: { fontSize: 16, fontWeight: '600' },
   langOption: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 12, borderWidth: 1.5, borderColor: '#E5E7EB' },
