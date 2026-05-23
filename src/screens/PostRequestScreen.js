@@ -1,6 +1,6 @@
 // =============================================
 //  src/screens/PostRequestScreen.js
-//  BRAND COLORS: Ethiopian Green (#2E7D32) + Gold (#F9A825)
+//  UPDATED: Description validation (min 10 chars, no gibberish)
 // =============================================
 
 import React, { useState, useEffect } from 'react';
@@ -11,18 +11,18 @@ import {
 } from 'react-native';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
-import { requestAPI, subcategoryAPI } from '../api/client';
+import { requestAPI } from '../api/client';
+import { getDescriptionError } from '../utils/validation';
 
 const BRAND = {
   primary: '#2E7D32',
-  primaryDark: '#1B5E20',
   primaryLight: '#E8F5E9',
   secondary: '#F9A825',
-  secondaryLight: '#FFF8E1',
   text: '#374151',
   textLight: '#6B7280',
   white: '#FFFFFF',
   error: '#DC2626',
+  success: '#10B981',
 };
 
 const ICON_MAP = {
@@ -40,6 +40,7 @@ export default function PostRequestScreen({ navigation, route }) {
   const [selectedCat, setSelectedCat] = useState(null);
   const [selectedSubcat, setSelectedSubcat] = useState(null);
   const [description, setDescription] = useState('');
+  const [descriptionError, setDescriptionError] = useState('');
   const [photoUri, setPhotoUri] = useState(null);
   const [location, setLocation] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -92,15 +93,28 @@ export default function PostRequestScreen({ navigation, route }) {
     }
   }
 
+  function handleDescriptionChange(text) {
+    setDescription(text);
+    const error = getDescriptionError(text);
+    setDescriptionError(error || '');
+  }
+
   async function handleSubmit() {
     if (!selectedCat) {
       Alert.alert('Select Category', 'Please select a service category');
       return;
     }
+    
+    if (descriptionError) {
+      Alert.alert('Invalid Description', descriptionError);
+      return;
+    }
+    
     if (!description.trim()) {
       Alert.alert('Add Description', 'Please describe what you need');
       return;
     }
+    
     if (!location) {
       Alert.alert('Location Required', 'We need your location to match providers');
       return;
@@ -147,22 +161,14 @@ export default function PostRequestScreen({ navigation, route }) {
           {categories.map(cat => (
             <TouchableOpacity
               key={cat.id}
-              style={[
-                styles.catChip, 
-                { backgroundColor: '#F9FAFB', borderColor: '#E5E7EB' },
-                selectedCat?.id === cat.id && { borderColor: BRAND.primary, backgroundColor: BRAND.primaryLight }
-              ]}
+              style={[styles.catChip, selectedCat?.id === cat.id && styles.catChipActive]}
               onPress={() => {
                 setSelectedCat(cat);
                 setSelectedSubcat(null);
               }}
             >
               <Text style={styles.catIcon}>{ICON_MAP[cat.icon] || '🔨'}</Text>
-              <Text style={[
-                styles.catText, 
-                { color: BRAND.text },
-                selectedCat?.id === cat.id && { color: BRAND.primary, fontWeight: '600' }
-              ]}>
+              <Text style={[styles.catText, selectedCat?.id === cat.id && styles.catTextActive]}>
                 {cat.name}
               </Text>
             </TouchableOpacity>
@@ -171,18 +177,19 @@ export default function PostRequestScreen({ navigation, route }) {
 
         <Text style={[styles.label, { color: BRAND.text }]}>Describe Your Problem *</Text>
         <TextInput
-          style={[styles.textarea, { backgroundColor: '#F9FAFB', borderColor: '#E5E7EB', color: BRAND.text }]}
-          placeholder="e.g. My kitchen pipe is leaking near the sink. Need urgent repair."
+          style={[styles.textarea, descriptionError && styles.textareaError]}
+          placeholder="e.g. My kitchen pipe is leaking near the sink. Need urgent repair. (min 10 characters)"
           placeholderTextColor={BRAND.textLight}
           multiline
           numberOfLines={4}
           value={description}
-          onChangeText={setDescription}
+          onChangeText={handleDescriptionChange}
           textAlignVertical="top"
         />
+        {descriptionError && <Text style={[styles.errorText, { color: BRAND.error }]}>{descriptionError}</Text>}
 
         <Text style={[styles.label, { color: BRAND.text }]}>Add a Photo (Optional)</Text>
-        <TouchableOpacity style={[styles.photoBtn, { borderColor: '#D1D5DB' }]} onPress={pickPhoto}>
+        <TouchableOpacity style={[styles.photoBtn, { borderColor: BRAND.textLight }]} onPress={pickPhoto}>
           <Text style={[styles.photoBtnText, { color: BRAND.textLight }]}>
             {photoUri ? '✅ Photo Selected' : '📷 Choose Photo'}
           </Text>
@@ -198,7 +205,7 @@ export default function PostRequestScreen({ navigation, route }) {
           }
         </View>
 
-        <View style={[styles.feeBox, { backgroundColor: BRAND.secondaryLight, borderLeftColor: BRAND.secondary }]}>
+        <View style={[styles.feeBox, { backgroundColor: '#FFF8E1', borderLeftColor: BRAND.secondary }]}>
           <Text style={[styles.feeTitle, { color: '#92400E' }]}>💳 Fee Information</Text>
           <Text style={[styles.feeText, { color: '#92400E' }]}>
             After a provider accepts your request, you will pay a 100 ETB commitment fee to unlock their contact details.
@@ -223,15 +230,19 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, fontWeight: 'bold', marginBottom: 4 },
   subtitle: { fontSize: 14, marginBottom: 4 },
   label: { fontSize: 14, fontWeight: '600' },
+  errorText: { fontSize: 12, marginTop: -8, marginBottom: 4 },
   selectedBox: { borderRadius: 12, padding: 12, marginBottom: 8 },
   selectedLabel: { fontSize: 12, marginBottom: 4 },
   selectedValue: { fontSize: 16, fontWeight: '600' },
   catScroll: { marginBottom: 4 },
-  catChip: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, marginRight: 8 },
+  catChip: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, marginRight: 8, borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' },
+  catChipActive: { borderColor: BRAND.primary, backgroundColor: BRAND.primaryLight },
   catIcon: { fontSize: 16, marginRight: 6 },
-  catText: { fontSize: 13 },
-  textarea: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 15, minHeight: 100 },
-  photoBtn: { borderWidth: 2, borderStyle: 'dashed', borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
+  catText: { fontSize: 13, color: BRAND.text },
+  catTextActive: { color: BRAND.primary, fontWeight: '600' },
+  textarea: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 15, minHeight: 100, borderColor: '#E5E7EB', backgroundColor: '#F9FAFB' },
+  textareaError: { borderColor: BRAND.error, borderWidth: 1.5 },
+  photoBtn: { borderWidth: 2, borderStyle: 'dashed', borderRadius: 12, paddingVertical: 16, alignItems: 'center', borderColor: '#D1D5DB' },
   photoBtnText: { fontSize: 15 },
   locationRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   locationStatus: { fontSize: 13 },
@@ -239,5 +250,5 @@ const styles = StyleSheet.create({
   feeTitle: { fontSize: 14, fontWeight: '600', marginBottom: 4 },
   feeText: { fontSize: 13, lineHeight: 18 },
   btn: { borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
-  btnText: { color: '#fff', fontSize: 17, fontWeight: 'bold' },
+  btnText: { color: '#FFF', fontSize: 17, fontWeight: 'bold' },
 });

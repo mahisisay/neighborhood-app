@@ -1,7 +1,9 @@
 // =============================================
 //  src/screens/RegisterScreen.js
-//  BRAND COLORS: Ethiopian Green (#2E7D32) + Gold (#F9A825)
-//  With Both Roles option, validation, and service selection
+//  UPDATED: Full validation for all fields
+//  Phone: +2519XXXXXXXX format
+//  Password: min 6 chars with 1 number
+//  Name: min 2 chars, letters only
 // =============================================
 
 import React, { useState, useEffect } from 'react';
@@ -14,26 +16,26 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { authAPI, loginForUpload, BASE_URL, subcategoryAPI } from '../api/client';
 import { useSettings } from '../context/SettingsContext';
+import { 
+  getNameError, 
+  getPhoneError, 
+  getPasswordError,
+  formatPhoneForDisplay,
+  validateRegisterForm,
+  isFormValid
+} from '../utils/validation';
 
-// Brand Colors
 const BRAND = {
   primary: '#2E7D32',
   primaryDark: '#1B5E20',
   primaryLight: '#E8F5E9',
   secondary: '#F9A825',
-  secondaryLight: '#FFF8E1',
   text: '#374151',
   textLight: '#6B7280',
   white: '#FFFFFF',
-  dark: '#1F2937',
   error: '#DC2626',
   success: '#10B981',
 };
-
-// Validation helpers
-const validatePhone = (phone) => /^09[0-9]{8}$/.test(phone);
-const validatePassword = (password) => password.length >= 6;
-const validateName = (name) => name.trim().length >= 2;
 
 export default function RegisterScreen({ navigation }) {
   const { t, theme, language, updateLanguage } = useSettings();
@@ -46,19 +48,28 @@ export default function RegisterScreen({ navigation }) {
   const [idPhoto, setIdPhoto] = useState(null);
   const [certificate, setCertificate] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({});
+  const [validationErrors, setValidationErrors] = useState({});
   
   const [subcategories, setSubcategories] = useState([]);
   const [selectedServices, setSelectedServices] = useState([]);
   const [loadingServices, setLoadingServices] = useState(false);
-  const [showServiceSelector, setShowServiceSelector] = useState(false);
+
+  // Live validation on field change
+  useEffect(() => {
+    const errors = {};
+    const nameErr = getNameError(name);
+    if (nameErr) errors.name = nameErr;
+    const phoneErr = getPhoneError(phone);
+    if (phoneErr) errors.phone = phoneErr;
+    const passwordErr = getPasswordError(password);
+    if (passwordErr) errors.password = passwordErr;
+    setValidationErrors(errors);
+  }, [name, phone, password]);
 
   useEffect(() => {
     if (role === 'provider' || registerBoth) {
       loadSubcategories();
-      setShowServiceSelector(true);
     } else {
-      setShowServiceSelector(false);
       setSelectedServices([]);
     }
   }, [role, registerBoth]);
@@ -95,30 +106,6 @@ export default function RegisterScreen({ navigation }) {
     }
   }
 
-  function validateForm() {
-    const newErrors = {};
-    
-    if (!name.trim()) newErrors.name = 'Name is required';
-    else if (!validateName(name)) newErrors.name = 'Name must be at least 2 characters';
-    
-    if (!phone) newErrors.phone = 'Phone is required';
-    else if (!validatePhone(phone)) newErrors.phone = 'Phone must be 09xxxxxxxx format';
-    
-    if (!password) newErrors.password = 'Password is required';
-    else if (!validatePassword(password)) newErrors.password = 'Password must be at least 6 characters';
-    
-    if ((role === 'provider' || registerBoth) && !idPhoto) {
-      newErrors.idPhoto = 'National ID photo is required';
-    }
-    
-    if ((role === 'provider' || registerBoth) && selectedServices.length === 0) {
-      newErrors.services = 'Select at least one service';
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  }
-
   async function uploadDocuments() {
     try {
       const formData = new FormData();
@@ -134,7 +121,8 @@ export default function RegisterScreen({ navigation }) {
         formData.append('experience_description', experienceDescription);
       }
 
-      const token = await loginForUpload(phone, password);
+      const formattedPhone = formatPhoneForDisplay(phone);
+      const token = await loginForUpload(formattedPhone, password);
       const response = await fetch(`${BASE_URL}/api/providers/onboard`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
@@ -162,16 +150,35 @@ export default function RegisterScreen({ navigation }) {
   }
 
   async function handleRegister() {
-    if (!validateForm()) return;
+    // Final validation before submission
+    const errors = validateRegisterForm({
+      name,
+      phone,
+      password,
+      role,
+      registerBoth,
+      idPhoto,
+      selectedServices
+    });
+    
+    setValidationErrors(errors);
+    
+    if (!isFormValid(errors)) {
+      const firstError = Object.values(errors)[0];
+      Alert.alert('Validation Error', firstError);
+      return;
+    }
 
     setLoading(true);
     try {
+      const formattedPhone = formatPhoneForDisplay(phone);
+      
       if (registerBoth) {
-        await authAPI.register({ name, phone, password, role: 'seeker' });
-        await authAPI.register({ name, phone, password, role: 'provider' });
+        await authAPI.register({ name, phone: formattedPhone, password, role: 'seeker' });
+        await authAPI.register({ name, phone: formattedPhone, password, role: 'provider' });
         await uploadDocuments();
         
-        const token = await loginForUpload(phone, password);
+        const token = await loginForUpload(formattedPhone, password);
         await fetch(`${BASE_URL}/api/auth/mark-both-roles`, {
           method: 'POST',
           headers: {
@@ -187,7 +194,7 @@ export default function RegisterScreen({ navigation }) {
           [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
         );
       } else if (role === 'provider') {
-        await authAPI.register({ name, phone, password, role: 'provider' });
+        await authAPI.register({ name, phone: formattedPhone, password, role: 'provider' });
         await uploadDocuments();
         Alert.alert(
           'Registration Successful',
@@ -195,7 +202,7 @@ export default function RegisterScreen({ navigation }) {
           [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
         );
       } else {
-        await authAPI.register({ name, phone, password, role: 'seeker' });
+        await authAPI.register({ name, phone: formattedPhone, password, role: 'seeker' });
         Alert.alert(
           'Registration Successful',
           'You can now login to your account.',
@@ -240,113 +247,74 @@ export default function RegisterScreen({ navigation }) {
           <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>I am a</Text>
           <View style={styles.roleRow}>
             <TouchableOpacity
-              style={[
-                styles.roleBtn, 
-                { borderColor: isDark ? '#555' : '#E5E7EB', backgroundColor: isDark ? '#2C2C2C' : BRAND.white },
-                role === 'seeker' && !registerBoth && { borderColor: BRAND.primary, backgroundColor: BRAND.primaryLight }
-              ]}
+              style={[styles.roleBtn, role === 'seeker' && !registerBoth && styles.roleBtnActive]}
               onPress={() => { setRole('seeker'); setRegisterBoth(false); }}
             >
               <Text style={styles.roleIcon}>🔍</Text>
-              <Text style={[styles.roleText, { color: isDark ? '#CCC' : BRAND.text }, role === 'seeker' && !registerBoth && { color: BRAND.primary }]}>
-                Service Seeker
-              </Text>
+              <Text style={[styles.roleText, role === 'seeker' && !registerBoth && styles.roleTextActive]}>Service Seeker</Text>
               <Text style={[styles.roleDesc, { color: isDark ? '#888' : BRAND.textLight }]}>Need a service done</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[
-                styles.roleBtn, 
-                { borderColor: isDark ? '#555' : '#E5E7EB', backgroundColor: isDark ? '#2C2C2C' : BRAND.white },
-                role === 'provider' && !registerBoth && { borderColor: BRAND.primary, backgroundColor: BRAND.primaryLight }
-              ]}
+              style={[styles.roleBtn, role === 'provider' && !registerBoth && styles.roleBtnActive]}
               onPress={() => { setRole('provider'); setRegisterBoth(false); }}
             >
               <Text style={styles.roleIcon}>👷</Text>
-              <Text style={[styles.roleText, { color: isDark ? '#CCC' : BRAND.text }, role === 'provider' && !registerBoth && { color: BRAND.primary }]}>
-                Service Provider
-              </Text>
+              <Text style={[styles.roleText, role === 'provider' && !registerBoth && styles.roleTextActive]}>Service Provider</Text>
               <Text style={[styles.roleDesc, { color: isDark ? '#888' : BRAND.textLight }]}>Offer your skills</Text>
             </TouchableOpacity>
           </View>
 
           {/* Both Roles Option */}
           <TouchableOpacity
-            style={[
-              styles.bothRolesCard, 
-              { backgroundColor: isDark ? '#1E3A5F' : BRAND.primaryLight, borderColor: BRAND.primary },
-              registerBoth && { borderWidth: 2 }
-            ]}
+            style={[styles.bothRolesCard, registerBoth && styles.bothRolesCardActive]}
             onPress={() => { setRegisterBoth(true); setRole('seeker'); }}
           >
-            <Text style={[styles.bothRolesIcon, { color: BRAND.primary }]}>🔄</Text>
+            <Text style={styles.bothRolesIcon}>🔄</Text>
             <View style={{ flex: 1 }}>
               <Text style={[styles.bothRolesTitle, { color: BRAND.primary }]}>Be Both!</Text>
-              <Text style={[styles.bothRolesDesc, { color: BRAND.primary }]}>Register as both Seeker and Provider</Text>
+              <Text style={[styles.bothRolesDesc, { color: BRAND.textLight }]}>Register as both Seeker and Provider</Text>
             </View>
             {registerBoth && <Text style={styles.checkMark}>✅</Text>}
           </TouchableOpacity>
 
           <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>Full Name</Text>
           <TextInput
-            style={[
-              styles.input, 
-              { 
-                backgroundColor: isDark ? '#2C2C2C' : BRAND.white,
-                borderColor: errors.name ? BRAND.error : (isDark ? '#444' : '#E5E7EB'),
-                color: isDark ? '#FFF' : BRAND.text
-              }
-            ]}
+            style={[styles.input, validationErrors.name && styles.inputError]}
             placeholder="Your full name"
-            placeholderTextColor={isDark ? '#888' : '#9CA3AF'}
+            placeholderTextColor={isDark ? '#888' : BRAND.textLight}
             value={name}
             onChangeText={setName}
           />
-          {errors.name && <Text style={[styles.errorText, { color: BRAND.error }]}>{errors.name}</Text>}
+          {validationErrors.name && <Text style={[styles.errorText, { color: BRAND.error }]}>{validationErrors.name}</Text>}
 
           <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>Phone Number</Text>
           <TextInput
-            style={[
-              styles.input, 
-              { 
-                backgroundColor: isDark ? '#2C2C2C' : BRAND.white,
-                borderColor: errors.phone ? BRAND.error : (isDark ? '#444' : '#E5E7EB'),
-                color: isDark ? '#FFF' : BRAND.text
-              }
-            ]}
-            placeholder="e.g. 0912345678"
-            placeholderTextColor={isDark ? '#888' : '#9CA3AF'}
+            style={[styles.input, validationErrors.phone && styles.inputError]}
+            placeholder="+251912345678"
+            placeholderTextColor={isDark ? '#888' : BRAND.textLight}
             keyboardType="phone-pad"
             value={phone}
             onChangeText={setPhone}
           />
-          {errors.phone && <Text style={[styles.errorText, { color: BRAND.error }]}>{errors.phone}</Text>}
+          {validationErrors.phone && <Text style={[styles.errorText, { color: BRAND.error }]}>{validationErrors.phone}</Text>}
 
           <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>Password</Text>
           <TextInput
-            style={[
-              styles.input, 
-              { 
-                backgroundColor: isDark ? '#2C2C2C' : BRAND.white,
-                borderColor: errors.password ? BRAND.error : (isDark ? '#444' : '#E5E7EB'),
-                color: isDark ? '#FFF' : BRAND.text
-              }
-            ]}
-            placeholder="At least 6 characters"
-            placeholderTextColor={isDark ? '#888' : '#9CA3AF'}
+            style={[styles.input, validationErrors.password && styles.inputError]}
+            placeholder="At least 6 characters with 1 number"
+            placeholderTextColor={isDark ? '#888' : BRAND.textLight}
             secureTextEntry
             value={password}
             onChangeText={setPassword}
           />
-          {errors.password && <Text style={[styles.errorText, { color: BRAND.error }]}>{errors.password}</Text>}
+          {validationErrors.password && <Text style={[styles.errorText, { color: BRAND.error }]}>{validationErrors.password}</Text>}
 
           {needsProviderFields && (
             <>
-              <View style={[styles.divider, { backgroundColor: isDark ? '#333' : '#E5E7EB' }]} />
+              <View style={styles.divider} />
               
               <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : BRAND.text }]}>Select Your Services</Text>
               <Text style={[styles.sectionDesc, { color: isDark ? '#AAA' : BRAND.textLight }]}>Choose all services you offer</Text>
-              
-              {errors.services && <Text style={[styles.errorText, { color: BRAND.error }]}>{errors.services}</Text>}
               
               {loadingServices ? (
                 <ActivityIndicator size="large" color={BRAND.primary} style={{ marginVertical: 20 }} />
@@ -358,19 +326,13 @@ export default function RegisterScreen({ navigation }) {
                       {services.map(service => (
                         <TouchableOpacity
                           key={service.id}
-                          style={[
-                            styles.serviceBtn,
-                            { backgroundColor: isDark ? '#2C2C2C' : '#F3F4F6' },
-                            selectedServices.includes(service.id) && { backgroundColor: BRAND.primary }
-                          ]}
+                          style={[styles.serviceBtn, selectedServices.includes(service.id) && styles.serviceBtnSelected]}
                           onPress={() => toggleService(service.id)}
                         >
                           <Text style={styles.serviceIcon}>{service.icon || '📌'}</Text>
-                          <Text style={[
-                            styles.serviceName,
-                            { color: isDark ? '#CCC' : BRAND.text },
-                            selectedServices.includes(service.id) && { color: '#FFF' }
-                          ]}>{service.name}</Text>
+                          <Text style={[styles.serviceName, selectedServices.includes(service.id) && styles.serviceNameSelected]}>
+                            {service.name}
+                          </Text>
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -378,21 +340,13 @@ export default function RegisterScreen({ navigation }) {
                 ))
               )}
               
-              <View style={[styles.divider, { backgroundColor: isDark ? '#333' : '#E5E7EB' }]} />
+              <View style={styles.divider} />
               <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : BRAND.text }]}>Verification Documents</Text>
               <Text style={[styles.sectionDesc, { color: isDark ? '#AAA' : BRAND.textLight }]}>These will be reviewed by admin</Text>
 
               <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>National ID Photo *</Text>
-              {errors.idPhoto && <Text style={[styles.errorText, { color: BRAND.error }]}>{errors.idPhoto}</Text>}
               <TouchableOpacity
-                style={[
-                  styles.uploadBtn, 
-                  { 
-                    backgroundColor: isDark ? '#2C2C2C' : '#F9FAFB',
-                    borderColor: errors.idPhoto ? BRAND.error : (isDark ? '#555' : '#D1D5DB')
-                  },
-                  idPhoto && { borderColor: BRAND.success, backgroundColor: BRAND.primaryLight }
-                ]}
+                style={[styles.uploadBtn, idPhoto && styles.uploadBtnDone]}
                 onPress={() => pickImage(setIdPhoto)}
               >
                 {idPhoto ? (
@@ -407,14 +361,7 @@ export default function RegisterScreen({ navigation }) {
 
               <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>Certificate (Optional)</Text>
               <TouchableOpacity
-                style={[
-                  styles.uploadBtn, 
-                  { 
-                    backgroundColor: isDark ? '#2C2C2C' : '#F9FAFB',
-                    borderColor: isDark ? '#555' : '#D1D5DB'
-                  },
-                  certificate && { borderColor: BRAND.success, backgroundColor: BRAND.primaryLight }
-                ]}
+                style={[styles.uploadBtn, certificate && styles.uploadBtnDone]}
                 onPress={() => pickImage(setCertificate)}
               >
                 {certificate ? (
@@ -429,16 +376,9 @@ export default function RegisterScreen({ navigation }) {
 
               <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>Experience Description</Text>
               <TextInput
-                style={[
-                  styles.input, styles.textArea,
-                  { 
-                    backgroundColor: isDark ? '#2C2C2C' : BRAND.white,
-                    borderColor: isDark ? '#444' : '#E5E7EB',
-                    color: isDark ? '#FFF' : BRAND.text
-                  }
-                ]}
+                style={[styles.input, styles.textArea]}
                 placeholder="Tell us about your experience..."
-                placeholderTextColor={isDark ? '#888' : '#9CA3AF'}
+                placeholderTextColor={isDark ? '#888' : BRAND.textLight}
                 multiline
                 numberOfLines={4}
                 value={experienceDescription}
@@ -455,7 +395,7 @@ export default function RegisterScreen({ navigation }) {
           )}
 
           <TouchableOpacity
-            style={[styles.btn, { backgroundColor: BRAND.primary }, loading && { opacity: 0.7 }]}
+            style={[styles.btn, loading && { opacity: 0.7 }]}
             onPress={handleRegister}
             disabled={loading}
           >
@@ -493,36 +433,43 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 15 },
   label: { fontSize: 14, fontWeight: '600' },
   errorText: { fontSize: 12, marginTop: -8, marginBottom: 4 },
-  input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15 },
+  input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, backgroundColor: '#F9FAFB', borderColor: '#D1D5DB' },
+  inputError: { borderColor: '#DC2626', borderWidth: 1.5 },
   textArea: { minHeight: 100 },
   roleRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
-  roleBtn: { flex: 1, borderWidth: 2, borderRadius: 12, padding: 14, alignItems: 'center' },
+  roleBtn: { flex: 1, borderWidth: 2, borderRadius: 12, padding: 14, alignItems: 'center', borderColor: '#E5E7EB', backgroundColor: '#FFF' },
+  roleBtnActive: { borderColor: '#2E7D32', backgroundColor: '#E8F5E9' },
   roleIcon: { fontSize: 28, marginBottom: 4 },
-  roleText: { fontSize: 13, fontWeight: '600' },
-  roleDesc: { fontSize: 11, marginTop: 2 },
-  bothRolesCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1.5, borderRadius: 12, padding: 16, marginBottom: 8 },
+  roleText: { fontSize: 13, fontWeight: '600', color: '#374151' },
+  roleTextActive: { color: '#2E7D32' },
+  roleDesc: { fontSize: 11, marginTop: 2, color: '#6B7280' },
+  bothRolesCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1.5, borderRadius: 12, padding: 16, marginBottom: 8, borderColor: '#E5E7EB', backgroundColor: '#FFF' },
+  bothRolesCardActive: { borderColor: '#2E7D32', backgroundColor: '#E8F5E9' },
   bothRolesIcon: { fontSize: 28 },
-  bothRolesTitle: { fontSize: 15, fontWeight: 'bold' },
-  bothRolesDesc: { fontSize: 12 },
+  bothRolesTitle: { fontSize: 15, fontWeight: 'bold', color: '#2E7D32' },
+  bothRolesDesc: { fontSize: 12, color: '#6B7280' },
   checkMark: { fontSize: 18 },
-  divider: { height: 1, marginVertical: 8 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
-  sectionDesc: { fontSize: 13, lineHeight: 18, marginBottom: 12 },
+  divider: { height: 1, backgroundColor: '#E5E7EB', marginVertical: 8 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 4, color: '#111' },
+  sectionDesc: { fontSize: 13, lineHeight: 18, marginBottom: 12, color: '#6B7280' },
   categoryGroup: { marginBottom: 16 },
-  categoryTitle: { fontSize: 14, fontWeight: 'bold', marginBottom: 8 },
+  categoryTitle: { fontSize: 14, fontWeight: 'bold', marginBottom: 8, color: '#2E7D32' },
   servicesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  serviceBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, marginRight: 8, marginBottom: 8 },
+  serviceBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, marginRight: 8, marginBottom: 8, backgroundColor: '#F3F4F6' },
+  serviceBtnSelected: { backgroundColor: '#2E7D32' },
   serviceIcon: { fontSize: 14 },
-  serviceName: { fontSize: 12 },
-  uploadBtn: { borderWidth: 2, borderStyle: 'dashed', borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginBottom: 12 },
-  uploadBtnText: { fontSize: 15 },
+  serviceName: { fontSize: 12, color: '#374151' },
+  serviceNameSelected: { color: '#FFF' },
+  uploadBtn: { borderWidth: 2, borderStyle: 'dashed', borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginBottom: 12, borderColor: '#D1D5DB', backgroundColor: '#F9FAFB' },
+  uploadBtnDone: { borderColor: '#10B981', backgroundColor: '#E8F5E9' },
+  uploadBtnText: { fontSize: 15, color: '#6B7280' },
   uploadedRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   thumbImage: { width: 40, height: 40, borderRadius: 6 },
-  uploadedText: { fontWeight: '600' },
+  uploadedText: { fontWeight: '600', color: '#10B981' },
   noteBox: { borderRadius: 10, padding: 12, borderLeftWidth: 4, marginBottom: 8 },
-  noteText: { fontSize: 13, lineHeight: 18 },
-  btn: { borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
-  btnText: { color: '#fff', fontSize: 17, fontWeight: 'bold' },
-  linkText: { textAlign: 'center', marginTop: 4 },
-  link: { fontWeight: '600' },
+  noteText: { fontSize: 13, lineHeight: 18, color: '#92400E' },
+  btn: { borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginTop: 8, backgroundColor: '#2E7D32' },
+  btnText: { color: '#FFF', fontSize: 17, fontWeight: 'bold' },
+  linkText: { textAlign: 'center', marginTop: 4, color: '#6B7280' },
+  link: { fontWeight: '600', color: '#2E7D32' },
 });
