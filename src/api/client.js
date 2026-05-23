@@ -1,6 +1,7 @@
 // =============================================
 //  src/api/client.js — COMPLETE
 //  Checks token expiry before every API call
+//  ADDED: Forgot Password & Reset Password
 // =============================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -81,6 +82,8 @@ export const authAPI = {
   register: (body) => apiCall('/api/auth/register', 'POST', body),
   login:    (body) => apiCall('/api/auth/login',    'POST', body),
   getMe:    ()     => apiCall('/api/auth/me'),
+  forgotPassword: (body) => apiCall('/api/auth/forgot-password', 'POST', body),
+  resetPassword:   (body) => apiCall('/api/auth/reset-password',   'POST', body),
 };
 
 // ── Requests ─────────────────────────────────

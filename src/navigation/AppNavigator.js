@@ -1,6 +1,6 @@
 // =============================================
 //  src/navigation/AppNavigator.js — COMPLETE
-//  WITH RATE PROVIDER SCREEN
+//  WITH RATE PROVIDER SCREEN & FORGOT PASSWORD
 // =============================================
 
 import React from 'react';
@@ -15,6 +15,7 @@ import { useSettings } from '../context/SettingsContext';
 import WelcomeScreen from '../screens/WelcomeScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
+import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 
 // Seeker screens
 import HomeScreen from '../screens/HomeScreen';
@@ -218,25 +219,30 @@ export default function AppNavigator() {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!user ? (
+          // Not logged in
           <>
             <Stack.Screen name="Welcome" component={WelcomeScreen} />
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ headerShown: false }} />
             <Stack.Screen name="Home" component={HomeScreen} />
           </>
         ) : user.role === 'provider' ? (
+          // Provider screens
           <>
             <Stack.Screen name="ProviderTabs" component={ProviderTabs} />
             <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
             <Stack.Screen name="About" component={AboutScreen} options={{ headerShown: false }} />
           </>
         ) : user.role === 'admin' ? (
+          // Admin screens
           <>
             <Stack.Screen name="AdminTabs" component={AdminTabs} />
             <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
             <Stack.Screen name="About" component={AboutScreen} options={{ headerShown: false }} />
           </>
         ) : (
+          // Seeker screens
           <>
             <Stack.Screen name="SeekerTabs" component={SeekerTabs} />
             <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />

@@ -1,6 +1,7 @@
 // =============================================
 //  src/screens/LoginScreen.js
 //  BRAND COLORS: Ethiopian Green (#2E7D32) + Gold (#F9A825)
+//  ADDED: Forgot Password link
 // =============================================
 
 import React, { useState } from 'react';
@@ -13,12 +14,11 @@ import { authAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
 
-// Brand Colors
 const BRAND = {
-  primary: '#2E7D32',      // Ethiopian Green
+  primary: '#2E7D32',
   primaryDark: '#1B5E20',
   primaryLight: '#E8F5E9',
-  secondary: '#F9A825',    // Gold
+  secondary: '#F9A825',
   secondaryLight: '#FFF8E1',
   text: '#374151',
   textLight: '#6B7280',
@@ -60,7 +60,6 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme === 'dark' ? '#121212' : BRAND.white }]}>
-      {/* Top row: Back + Language Toggle */}
       <View style={styles.headerRow}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Text style={[styles.backBtnText, { color: BRAND.primary }]}>← {t('back')}</Text>
@@ -127,6 +126,11 @@ export default function LoginScreen({ navigation }) {
             {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{t('login')}</Text>}
           </TouchableOpacity>
           
+          {/* Forgot Password Link */}
+          <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+            <Text style={[styles.forgotText, { color: BRAND.primary }]}>Forgot Password?</Text>
+          </TouchableOpacity>
+          
           <TouchableOpacity onPress={() => navigation.navigate('Register')}>
             <Text style={[styles.linkText, { color: theme === 'dark' ? '#AAA' : BRAND.textLight }]}>
               {t('no_account')} <Text style={[styles.link, { color: BRAND.primary }]}>{t('register')}</Text>
@@ -161,6 +165,7 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15 },
   btn: { borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
   btnText: { color: '#fff', fontSize: 17, fontWeight: 'bold' },
+  forgotText: { textAlign: 'center', marginTop: 4, fontSize: 13, fontWeight: '500' },
   linkText: { textAlign: 'center', marginTop: 12 },
   link: { fontWeight: '600' },
 });
