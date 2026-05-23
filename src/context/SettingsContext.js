@@ -1,5 +1,5 @@
 // src/context/SettingsContext.js
-// Complete Amharic translations for all features
+// Complete Amharic translations for all features including navigation
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -18,6 +18,21 @@ const translations = {
     error: 'Error',
     cancel: 'Cancel',
     login: 'Login',
+    back: 'Back',
+    ok: 'OK',
+    
+    // Navigation / Tab Labels
+    home: 'Home',
+    post_job: 'Post a Job',
+    my_requests: 'My Requests',
+    dashboard: 'Dashboard',
+    offered_jobs: 'Offered Jobs',
+    offered: 'Offered',
+    accepted_jobs: 'Accepted Jobs',
+    accepted: 'Accepted',
+    admin_panel: 'Admin Panel',
+    settings: 'Settings',
+    about: 'About',
     
     // Register Screen
     create_account: 'Create Account',
@@ -30,9 +45,9 @@ const translations = {
     full_name: 'Full Name',
     name_placeholder: 'Enter your full name',
     phone_number: 'Phone Number',
-    phone_placeholder: 'e.g. 0912345678',
+    phone_placeholder: '+251912345678',
     password: 'Password',
-    password_placeholder: 'At least 6 characters',
+    password_placeholder: 'At least 6 characters with 1 number',
     missing_fields: 'Missing Fields',
     fill_all_fields: 'Please fill in all required fields',
     weak_password: 'Weak Password',
@@ -46,8 +61,6 @@ const translations = {
     provider_pending_message: 'Your account is pending admin verification',
     registration_failed: 'Registration Failed',
     login_now: 'Login Now',
-    ok: 'OK',
-    back: 'Back',
     have_account: 'Already have an account?',
     
     // Provider Registration Fields
@@ -75,21 +88,29 @@ const translations = {
     logout_unavailable: 'Logout function not available',
     
     // Settings Screen
-    settings: 'Settings',
     appearance: 'Appearance',
     light_mode: 'Light Mode',
     dark_mode: 'Dark Mode',
     language: 'Language',
     english: 'English',
     amharic: 'Amharic',
-    about: 'About App',
-    version: 'Version',
     app_name: 'Neighborhood Service Finder',
     app_description: 'Connect with trusted local service providers in your neighborhood.',
     contact_us: 'Contact Us',
     email: 'Email',
     phone: 'Phone',
     website: 'Website',
+    app_settings: 'App Settings',
+    app_theme: 'App Theme',
+    app_language: 'App Language',
+    about_app: 'About App',
+    light: 'Light',
+    dark: 'Dark',
+    switch_role: 'Switch Role',
+    current_mode: 'Current Mode',
+    both_roles_desc: 'You have both roles. Switch between them anytime.',
+    seeker_mode: 'Seeker Mode',
+    provider_mode: 'Provider Mode',
     
     // Post Request
     post_request: 'Post a Request',
@@ -105,7 +126,6 @@ const translations = {
     post_button: 'Post Request',
     
     // My Requests
-    my_requests: 'My Requests',
     no_requests: 'No requests yet',
     no_requests_desc: 'Post your first service request',
     post_request_btn: 'Post a Request',
@@ -114,8 +134,6 @@ const translations = {
     provider_contact: 'Provider Contact',
     
     // Provider Screens
-    offered_jobs: 'Offered Jobs',
-    accepted_jobs: 'Accepted Jobs',
     no_offered_jobs: 'No offered jobs',
     no_accepted_jobs: 'No accepted jobs',
     go_online: 'Go Online',
@@ -130,7 +148,6 @@ const translations = {
     payment_required: 'Payment Required',
     
     // Admin
-    admin_panel: 'Admin Panel',
     total_seekers: 'Total Seekers',
     active_providers: 'Active Providers',
     pending_providers: 'Pending Providers',
@@ -141,6 +158,16 @@ const translations = {
     verify: 'Verify',
     reject: 'Reject',
     view_document: 'View Document',
+    
+    // Welcome Screen
+    welcome_back: 'Welcome Back',
+    login_to_account: 'Login to your account',
+    no_account: "Don't have an account?",
+    register: 'Register',
+    enter_phone_password: 'Please enter phone and password',
+    account_pending: 'Account Pending',
+    pending_message: 'Your account is under review. Please wait for admin approval.',
+    login_failed: 'Login Failed',
   },
   am: {
     // Common
@@ -153,6 +180,21 @@ const translations = {
     error: 'ስህተት',
     cancel: 'ሰርዝ',
     login: 'ግባ',
+    back: 'ተመለስ',
+    ok: 'እሺ',
+    
+    // Navigation / Tab Labels
+    home: 'መነሻ',
+    post_job: 'ስራ ለጥፍ',
+    my_requests: 'ጥያቄዎቼ',
+    dashboard: 'ዳሽቦርድ',
+    offered_jobs: 'የቀረቡ ስራዎች',
+    offered: 'የቀረበ',
+    accepted_jobs: 'ተቀባይነት ያገኙ',
+    accepted: 'ተቀባይነት አግኝቷል',
+    admin_panel: 'አስተዳዳሪ ፓነል',
+    settings: 'ቅንብሮች',
+    about: 'ስለ መተግበሪያ',
     
     // Register Screen
     create_account: 'አካውንት ፍጠር',
@@ -165,9 +207,9 @@ const translations = {
     full_name: 'ሙሉ ስም',
     name_placeholder: 'ሙሉ ስምዎን ያስገቡ',
     phone_number: 'ስልክ ቁጥር',
-    phone_placeholder: 'ለምሳሌ 0912345678',
+    phone_placeholder: '+251912345678',
     password: 'የይለፍ ቃል',
-    password_placeholder: 'ቢያንስ 6 ቁምፊዎች',
+    password_placeholder: 'ቢያንስ 6 ቁምፊዎች ከ1 ቁጥር ጋር',
     missing_fields: 'የጎደሉ መረጃዎች',
     fill_all_fields: 'እባክዎ ሁሉንም አስፈላጊ መረጃዎች ይሙሉ',
     weak_password: 'ደካማ የይለፍ ቃል',
@@ -181,8 +223,6 @@ const translations = {
     provider_pending_message: 'አካውንትዎ በአስተዳዳሪ ማረጋገጫ ላይ ነው',
     registration_failed: 'ምዝገባ አልተሳካም',
     login_now: 'አሁን ግቡ',
-    ok: 'እሺ',
-    back: 'ተመለስ',
     have_account: 'አካውንት አለዎት?',
     
     // Provider Registration Fields
@@ -210,21 +250,29 @@ const translations = {
     logout_unavailable: 'የውጣ ተግባር አይገኝም',
     
     // Settings Screen
-    settings: 'ቅንብሮች',
     appearance: 'መልክ',
     light_mode: 'ቀላል ሁነታ',
     dark_mode: 'ጨለማ ሁነታ',
     language: 'ቋንቋ',
     english: 'እንግሊዝኛ',
     amharic: 'አማርኛ',
-    about: 'ስለ መተግበሪያ',
-    version: 'ስሪት',
     app_name: 'ሰፈር አገልግሎት ፈላጊ',
     app_description: 'በአካባቢዎ ከሚታመኑ አገልግሎት ሰጪዎች ጋር ይገናኙ',
     contact_us: 'ያግኙን',
     email: 'ኢሜይል',
     phone: 'ስልክ',
     website: 'ድረ ገፅ',
+    app_settings: 'የመተግበሪያ ቅንብሮች',
+    app_theme: 'የመተግበሪያ መልክ',
+    app_language: 'የመተግበሪያ ቋንቋ',
+    about_app: 'ስለ መተግበሪያ',
+    light: 'ቀላል',
+    dark: 'ጨለማ',
+    switch_role: 'ሚና ቀይር',
+    current_mode: 'አሁን ያለሁበት ሁነታ',
+    both_roles_desc: 'ሁለቱም ሚናዎች አሉዎት። በማንኛውም ጊዜ መቀየር ይችላሉ።',
+    seeker_mode: 'ፈላጊ ሁነታ',
+    provider_mode: 'አገልግሎት ሰጪ ሁነታ',
     
     // Post Request
     post_request: 'ጥያቄ ለጥፍ',
@@ -240,7 +288,6 @@ const translations = {
     post_button: 'ጥያቄ ለጥፍ',
     
     // My Requests
-    my_requests: 'ጥያቄዎቼ',
     no_requests: 'ምንም ጥያቄ የለም',
     no_requests_desc: 'የመጀመሪያ ጥያቄዎን ይለጥፉ',
     post_request_btn: 'ጥያቄ ለጥፍ',
@@ -249,8 +296,6 @@ const translations = {
     provider_contact: 'የአገልግሎት ሰጪ መገኛ',
     
     // Provider Screens
-    offered_jobs: 'የቀረቡ ስራዎች',
-    accepted_jobs: 'ተቀባይነት ያገኙ ስራዎች',
     no_offered_jobs: 'ምንም የቀረቡ ስራዎች የሉም',
     no_accepted_jobs: 'ምንም ተቀባይነት ያገኙ ስራዎች የሉም',
     go_online: 'መስመር ላይ ውጣ',
@@ -265,7 +310,6 @@ const translations = {
     payment_required: 'ክፍያ ያስፈልጋል',
     
     // Admin
-    admin_panel: 'አስተዳዳሪ ፓነል',
     total_seekers: 'ጠቅላላ ፈላጊዎች',
     active_providers: 'ንቁ አገልግሎት ሰጪዎች',
     pending_providers: 'በመጠባበቅ ላይ ያሉ',
@@ -276,6 +320,16 @@ const translations = {
     verify: 'አረጋግጥ',
     reject: 'ውድቅ አድርግ',
     view_document: 'ሰነድ ተመልከት',
+    
+    // Welcome Screen
+    welcome_back: 'እንኳን ደህና መጡ',
+    login_to_account: 'ወደ መለያዎ ይግቡ',
+    no_account: 'አካውንት የለዎትም?',
+    register: 'ይመዝገቡ',
+    enter_phone_password: 'እባክዎ ስልክ ቁጥር እና የይለፍ ቃል ያስገቡ',
+    account_pending: 'አካውንት በመጠባበቅ ላይ',
+    pending_message: 'አካውንትዎ በአስተዳዳሪ ግምገራ ላይ ነው። እባክዎ ይጠብቁ።',
+    login_failed: 'መግቢያ አልተሳካም',
   }
 };
 

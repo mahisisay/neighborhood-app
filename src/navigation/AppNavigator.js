@@ -1,6 +1,6 @@
 // =============================================
 //  src/navigation/AppNavigator.js — COMPLETE
-//  Added About screen to 3-dot menu for all roles
+//  Dynamic titles that change with language
 // =============================================
 
 import React from 'react';
@@ -9,6 +9,7 @@ import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 
 // Auth screens
 import WelcomeScreen from '../screens/WelcomeScreen';
@@ -17,8 +18,6 @@ import RegisterScreen from '../screens/RegisterScreen';
 
 // Seeker screens
 import HomeScreen from '../screens/HomeScreen';
-
-// Import screens normally
 import PostRequestScreen from '../screens/PostRequestScreen';
 import MyRequestsScreen from '../screens/MyRequestsScreen';
 
@@ -30,10 +29,8 @@ import AcceptedJobsScreen from '../screens/AcceptedJobsScreen';
 // Admin screens
 import AdminDashboardScreen from '../screens/AdminDashboardScreen';
 
-// Settings screen
+// Settings and About screens
 import SettingsScreen from '../screens/SettingsScreen';
-
-// About screen
 import AboutScreen from '../screens/AboutScreen';
 
 const Stack = createStackNavigator();
@@ -52,7 +49,7 @@ function ThreeDotsButton() {
   );
 }
 
-// Create MapScreenComponent that is platform-specific WITHOUT requiring the native file on web
+// MapScreenComponent
 const MapScreenComponent = Platform.select({
   web: () => (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f9fafb' }}>
@@ -63,7 +60,6 @@ const MapScreenComponent = Platform.select({
     </View>
   ),
   default: () => {
-    // This only runs on native platforms
     const NativeMapScreen = require('../screens/MapScreen.native').default;
     return <NativeMapScreen />;
   }
@@ -73,6 +69,8 @@ const MapScreen = MapScreenComponent;
 
 // ── Seeker tabs ───────────────────────────────
 function SeekerTabs() {
+  const { t } = useSettings();
+  
   return (
     <Tab.Navigator
       screenOptions={{
@@ -89,9 +87,9 @@ function SeekerTabs() {
         name="Home"
         component={HomeScreen}
         options={{
-          title: 'Home',
+          title: t('home'),
           tabBarIcon: () => <Text style={{ fontSize: 20 }}>🏠</Text>,
-          tabBarLabel: 'Home'
+          tabBarLabel: t('home')
         }}
       />
       
@@ -99,9 +97,9 @@ function SeekerTabs() {
         name="Map"
         component={MapScreen}
         options={{
-          title: 'Nearby Providers',
+          title: t('map'),
           tabBarIcon: () => <Text style={{ fontSize: 20 }}>🗺️</Text>,
-          tabBarLabel: 'Map'
+          tabBarLabel: t('map')
         }}
       />
       
@@ -109,18 +107,18 @@ function SeekerTabs() {
         name="PostRequest"
         component={PostRequestScreen}
         options={{
-          title: 'Post a Job',
+          title: t('post_job'),
           tabBarIcon: () => <Text style={{ fontSize: 20 }}>➕</Text>,
-          tabBarLabel: 'Post Job'
+          tabBarLabel: t('post_job')
         }}
       />
       <Tab.Screen
         name="MyRequests"
         component={MyRequestsScreen}
         options={{
-          title: 'My Requests',
+          title: t('my_requests'),
           tabBarIcon: () => <Text style={{ fontSize: 20 }}>📋</Text>,
-          tabBarLabel: 'My Jobs'
+          tabBarLabel: t('my_requests')
         }}
       />
     </Tab.Navigator>
@@ -129,6 +127,8 @@ function SeekerTabs() {
 
 // ── Provider tabs ─────────────────────────────
 function ProviderTabs() {
+  const { t } = useSettings();
+  
   return (
     <Tab.Navigator
       screenOptions={{
@@ -145,27 +145,27 @@ function ProviderTabs() {
         name="ProviderHome"
         component={ProviderHomeScreen}
         options={{
-          title: 'Provider Dashboard',
+          title: t('dashboard'),
           tabBarIcon: () => <Text style={{ fontSize: 20 }}>🏠</Text>,
-          tabBarLabel: 'Home'
+          tabBarLabel: t('home')
         }}
       />
       <Tab.Screen
         name="OfferedJobs"
         component={OfferedJobsScreen}
         options={{
-          title: 'Offered Jobs',
+          title: t('offered_jobs'),
           tabBarIcon: () => <Text style={{ fontSize: 20 }}>📋</Text>,
-          tabBarLabel: 'Offered'
+          tabBarLabel: t('offered')
         }}
       />
       <Tab.Screen
         name="AcceptedJobs"
         component={AcceptedJobsScreen}
         options={{
-          title: 'Accepted Jobs',
+          title: t('accepted_jobs'),
           tabBarIcon: () => <Text style={{ fontSize: 20 }}>✅</Text>,
-          tabBarLabel: 'Accepted'
+          tabBarLabel: t('accepted')
         }}
       />
     </Tab.Navigator>
@@ -174,6 +174,8 @@ function ProviderTabs() {
 
 // ── Admin tabs ────────────────────────────────
 function AdminTabs() {
+  const { t } = useSettings();
+  
   return (
     <Tab.Navigator
       screenOptions={{
@@ -190,9 +192,9 @@ function AdminTabs() {
         name="AdminDashboard"
         component={AdminDashboardScreen}
         options={{
-          title: 'Admin Panel',
+          title: t('admin_panel'),
           tabBarIcon: () => <Text style={{ fontSize: 20 }}>👮</Text>,
-          tabBarLabel: 'Dashboard'
+          tabBarLabel: t('dashboard')
         }}
       />
     </Tab.Navigator>
@@ -215,7 +217,6 @@ export default function AppNavigator() {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!user ? (
-          // Not logged in
           <>
             <Stack.Screen name="Welcome" component={WelcomeScreen} />
             <Stack.Screen name="Login" component={LoginScreen} />
@@ -223,21 +224,18 @@ export default function AppNavigator() {
             <Stack.Screen name="Home" component={HomeScreen} />
           </>
         ) : user.role === 'provider' ? (
-          // Provider screens
           <>
             <Stack.Screen name="ProviderTabs" component={ProviderTabs} />
             <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
             <Stack.Screen name="About" component={AboutScreen} options={{ headerShown: false }} />
           </>
         ) : user.role === 'admin' ? (
-          // Admin screens
           <>
             <Stack.Screen name="AdminTabs" component={AdminTabs} />
             <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
             <Stack.Screen name="About" component={AboutScreen} options={{ headerShown: false }} />
           </>
         ) : (
-          // Seeker screens
           <>
             <Stack.Screen name="SeekerTabs" component={SeekerTabs} />
             <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
