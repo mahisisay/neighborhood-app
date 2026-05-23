@@ -1,6 +1,6 @@
 // =============================================
 //  src/screens/RegisterScreen.js
-//  PROFESSIONAL VERSION - Collapsible Categories, Grid Layout, Search
+//  FINAL FIXED VERSION - No more black screen
 // =============================================
 
 import React, { useState, useEffect } from 'react';
@@ -85,6 +85,7 @@ export default function RegisterScreen({ navigation }) {
   const [loadingServices, setLoadingServices] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedCategories, setExpandedCategories] = useState({});
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
 
   // Load subcategories when role changes to provider or both
   useEffect(() => {
@@ -93,6 +94,7 @@ export default function RegisterScreen({ navigation }) {
     } else {
       setSelectedServices([]);
       setExpandedCategories({});
+      setInitialLoadDone(false);
     }
   }, [role, registerBoth]);
 
@@ -100,17 +102,22 @@ export default function RegisterScreen({ navigation }) {
     setLoadingServices(true);
     try {
       const data = await subcategoryAPI.getAll();
-      setSubcategories(data.subcategories || []);
+      const subs = data.subcategories || [];
+      setSubcategories(subs);
+      
       // Initialize all categories as expanded by default
       const categories = {};
-      data.subcategories.forEach(sub => {
-        if (sub.category_name && !categories[sub.category_name]) {
+      subs.forEach(sub => {
+        if (sub && sub.category_name && !categories[sub.category_name]) {
           categories[sub.category_name] = true;
         }
       });
       setExpandedCategories(categories);
+      setInitialLoadDone(true);
     } catch (err) {
       console.log('Error loading subcategories:', err);
+      setSubcategories([]);
+      setInitialLoadDone(true);
     } finally {
       setLoadingServices(false);
     }
@@ -156,9 +163,10 @@ export default function RegisterScreen({ navigation }) {
   }
 
   function getFilteredSubcategories(services) {
+    if (!services || !Array.isArray(services)) return [];
     if (!searchQuery) return services;
     return services.filter(service => 
-      service.name.toLowerCase().includes(searchQuery.toLowerCase())
+      service && service.name && service.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }
 
@@ -166,11 +174,15 @@ export default function RegisterScreen({ navigation }) {
     try {
       const formData = new FormData();
       formData.append('id_document', {
-        uri: idPhoto.uri, type: 'image/jpeg', name: 'id_document.jpg',
+        uri: idPhoto.uri,
+        type: 'image/jpeg',
+        name: 'id_document.jpg',
       });
       if (certificate) {
         formData.append('certificate', {
-          uri: certificate.uri, type: 'image/jpeg', name: 'certificate.jpg',
+          uri: certificate.uri,
+          type: 'image/jpeg',
+          name: 'certificate.jpg',
         });
       }
       if (experienceDescription) {
@@ -271,15 +283,39 @@ export default function RegisterScreen({ navigation }) {
     }
   }
 
-  const groupedSubcategories = subcategories.reduce((groups, sub) => {
-    const catName = sub.category_name;
-    if (!groups[catName]) groups[catName] = [];
-    groups[catName].push(sub);
-    return groups;
-  }, {});
+  // SAFELY build grouped subcategories with null checks
+  const groupedSubcategories = React.useMemo(() => {
+    if (!subcategories || !Array.isArray(subcategories) || subcategories.length === 0) {
+      return {};
+    }
+    return subcategories.reduce((groups, sub) => {
+      if (!sub || !sub.category_name) return groups;
+      const catName = sub.category_name;
+      if (!groups[catName]) groups[catName] = [];
+      groups[catName].push(sub);
+      return groups;
+    }, {});
+  }, [subcategories]);
 
   const needsProviderFields = role === 'provider' || registerBoth;
   const isDark = theme === 'dark';
+
+  // Loading state for provider fields
+  if (needsProviderFields && loadingServices && !initialLoadDone) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#F9FAFB' }]}>
+        <View style={styles.headerRow}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Text style={[styles.backBtnText, { color: BRAND.primary }]}>← Back</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={BRAND.primary} />
+          <Text style={{ marginTop: 20, color: isDark ? '#AAA' : BRAND.textLight }}>Loading services...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#F9FAFB' }]}>
@@ -398,10 +434,14 @@ export default function RegisterScreen({ navigation }) {
 
               {loadingServices ? (
                 <ActivityIndicator size="large" color={BRAND.primary} style={{ marginVertical: 20 }} />
+              ) : Object.keys(groupedSubcategories).length === 0 ? (
+                <Text style={{ textAlign: 'center', padding: 20, color: BRAND.textLight }}>
+                  No services available. Please check your connection.
+                </Text>
               ) : (
                 Object.entries(groupedSubcategories).map(([categoryName, services]) => {
                   const filteredServices = getFilteredSubcategories(services);
-                  const isExpanded = expandedCategories[categoryName];
+                  const isExpanded = expandedCategories[categoryName] !== false;
                   const selectedCount = services.filter(s => selectedServices.includes(s.id)).length;
                   
                   if (filteredServices.length === 0 && searchQuery) return null;
@@ -578,8 +618,6 @@ const styles = StyleSheet.create({
   divider: { height: 1, backgroundColor: '#E5E7EB', marginVertical: 8 },
   sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 4, color: '#111' },
   sectionDesc: { fontSize: 13, lineHeight: 18, marginBottom: 12, color: '#6B7280' },
-  
-  // Professional Service Selection Styles
   searchContainer: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, paddingHorizontal: 12, marginBottom: 16, borderWidth: 1, borderColor: '#E5E7EB' },
   searchIcon: { fontSize: 16, marginRight: 8, color: '#9CA3AF' },
   searchInput: { flex: 1, paddingVertical: 10, fontSize: 14 },
@@ -600,7 +638,6 @@ const styles = StyleSheet.create({
   serviceIcon: { fontSize: 22, marginBottom: 6 },
   serviceName: { fontSize: 11, textAlign: 'center', fontWeight: '500' },
   serviceCheck: { position: 'absolute', top: 4, right: 8, fontSize: 12, color: '#FFF', fontWeight: 'bold' },
-  
   uploadBtn: { borderWidth: 2, borderStyle: 'dashed', borderRadius: 12, paddingVertical: 16, alignItems: 'center', marginBottom: 12, borderColor: '#D1D5DB', backgroundColor: '#F9FAFB' },
   uploadBtnDone: { borderColor: '#10B981', backgroundColor: '#E8F5E9' },
   uploadBtnText: { fontSize: 15, color: '#6B7280' },
