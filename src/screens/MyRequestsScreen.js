@@ -1,6 +1,6 @@
 // =============================================
-//  MyRequestsScreen.js — COMPLETE FIX
-//  BRAND COLORS: Ethiopian Green (#2E7D32) + Gold (#F9A825)
+//  MyRequestsScreen.js — COMPLETE
+//  WITH RATE & REVIEW FEATURE
 // =============================================
 
 import React, { useState, useCallback } from 'react';
@@ -152,6 +152,20 @@ export default function MyRequestsScreen() {
             }
           </TouchableOpacity>
         )}
+
+        {/* RATE BUTTON - Shows only when job is completed */}
+        {item.status === 'completed' && (
+          <TouchableOpacity
+            style={[styles.rateBtn, { backgroundColor: BRAND.secondary }]}
+            onPress={() => navigation.navigate('RateProvider', {
+              requestId: item.id,
+              providerId: item.provider_id,
+              providerName: item.provider_name
+            })}
+          >
+            <Text style={styles.rateBtnText}>⭐ Rate Provider</Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   }
@@ -216,6 +230,8 @@ const styles = StyleSheet.create({
   date: { fontSize: 12 },
   payBtn: { borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginTop: 10 },
   payBtnText: { color: '#FFF', fontWeight: '600', fontSize: 14 },
+  rateBtn: { borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginTop: 8 },
+  rateBtnText: { color: '#FFF', fontWeight: '600', fontSize: 14 },
   empty: { alignItems: 'center', marginTop: 60 },
   emptyIcon: { fontSize: 48, marginBottom: 12 },
   emptyTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 4 },

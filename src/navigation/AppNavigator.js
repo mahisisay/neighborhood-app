@@ -1,6 +1,6 @@
 // =============================================
 //  src/navigation/AppNavigator.js — COMPLETE
-//  Dynamic titles that change with language
+//  WITH RATE PROVIDER SCREEN
 // =============================================
 
 import React from 'react';
@@ -20,6 +20,7 @@ import RegisterScreen from '../screens/RegisterScreen';
 import HomeScreen from '../screens/HomeScreen';
 import PostRequestScreen from '../screens/PostRequestScreen';
 import MyRequestsScreen from '../screens/MyRequestsScreen';
+import RateProviderScreen from '../screens/RateProviderScreen';
 
 // Provider screens
 import ProviderHomeScreen from '../screens/ProviderHomeScreen';
@@ -240,6 +241,7 @@ export default function AppNavigator() {
             <Stack.Screen name="SeekerTabs" component={SeekerTabs} />
             <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
             <Stack.Screen name="About" component={AboutScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="RateProvider" component={RateProviderScreen} options={{ headerShown: false }} />
           </>
         )}
       </Stack.Navigator>
