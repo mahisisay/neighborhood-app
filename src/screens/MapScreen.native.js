@@ -1,6 +1,6 @@
 // =============================================
 //  src/screens/MapScreen.native.js
-//  Shows nearby providers on Google Maps
+//  WITH FULL AMHARIC SUPPORT
 // =============================================
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -29,7 +29,7 @@ const BRAND = {
 
 export default function MapScreen() {
   const { user } = useAuth();
-  const { theme } = useSettings();
+  const { theme, t } = useSettings();
   const mapRef = useRef(null);
   const [region, setRegion] = useState(null);
   const [providers, setProviders] = useState([]);
@@ -47,7 +47,7 @@ export default function MapScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Location access is needed to see nearby providers');
+        Alert.alert(t('error'), t('location_permission_denied'));
         setLoading(false);
         return;
       }
@@ -72,7 +72,7 @@ export default function MapScreen() {
       await loadNearbyProviders(location.coords.latitude, location.coords.longitude);
     } catch (error) {
       console.log('Location error:', error);
-      Alert.alert('Error', 'Could not get your location');
+      Alert.alert(t('error'), t('location_error'));
       setLoading(false);
     }
   }
@@ -83,7 +83,6 @@ export default function MapScreen() {
       setProviders(data.providers || []);
     } catch (err) {
       console.log('Error loading providers:', err);
-      Alert.alert('Error', 'Could not load nearby providers');
     } finally {
       setLoading(false);
     }
@@ -111,7 +110,7 @@ export default function MapScreen() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={BRAND.primary} />
           <Text style={[styles.loadingText, { color: isDark ? '#AAA' : BRAND.textLight }]}>
-            Loading nearby providers...
+            {t('loading_providers')}
           </Text>
         </View>
       </SafeAreaView>
@@ -124,13 +123,13 @@ export default function MapScreen() {
         <View style={styles.errorContainer}>
           <Text style={styles.errorIcon}>📍</Text>
           <Text style={[styles.errorText, { color: isDark ? '#FFF' : BRAND.text }]}>
-            Unable to get your location
+            {t('location_unavailable')}
           </Text>
           <TouchableOpacity 
             style={[styles.retryBtn, { backgroundColor: BRAND.primary }]} 
             onPress={getCurrentLocation}
           >
-            <Text style={styles.retryBtnText}>Retry</Text>
+            <Text style={styles.retryBtnText}>{t('retry')}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -149,7 +148,6 @@ export default function MapScreen() {
         showsMyLocationButton={false}
         showsCompass={true}
       >
-        {/* 10km Radius Circle around user */}
         {userLocation && (
           <Circle
             center={userLocation}
@@ -160,7 +158,6 @@ export default function MapScreen() {
           />
         )}
 
-        {/* Provider Markers */}
         {providers.map(provider => (
           <Marker
             key={provider.id}
@@ -170,7 +167,7 @@ export default function MapScreen() {
             }}
             onPress={() => setSelectedProvider(provider)}
             title={provider.name}
-            description={`${provider.distance_km} km away`}
+            description={`${provider.distance_km} km ${t('away')}`}
           >
             <View style={styles.markerContainer}>
               <Text style={styles.markerIcon}>👷</Text>
@@ -179,7 +176,6 @@ export default function MapScreen() {
         ))}
       </MapView>
 
-      {/* My Location Button */}
       <TouchableOpacity 
         style={[styles.myLocationBtn, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}
         onPress={focusOnUserLocation}
@@ -187,7 +183,6 @@ export default function MapScreen() {
         <Text style={styles.myLocationIcon}>📍</Text>
       </TouchableOpacity>
 
-      {/* Provider Info Card (when selected) */}
       {selectedProvider && (
         <View style={[styles.infoCard, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
           <View style={styles.infoHeader}>
@@ -204,41 +199,40 @@ export default function MapScreen() {
           
           <View style={styles.infoDetails}>
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>📍 Distance:</Text>
+              <Text style={styles.infoLabel}>{t('distance')}:</Text>
               <Text style={[styles.infoValue, { color: BRAND.secondary }]}>
-                {selectedProvider.distance_km} km away
+                {selectedProvider.distance_km} km {t('away')}
               </Text>
             </View>
             
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>⭐ Rating:</Text>
+              <Text style={styles.infoLabel}>{t('rating')}:</Text>
               <Text style={[styles.infoValue, { color: isDark ? '#FFF' : BRAND.text }]}>
-                {selectedProvider.avg_rating || 'New'} / 5
+                {selectedProvider.avg_rating || t('new')} / 5
               </Text>
             </View>
             
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>📊 Status:</Text>
+              <Text style={styles.infoLabel}>{t('status')}:</Text>
               <Text style={[styles.infoValue, { color: selectedProvider.is_online ? BRAND.success : BRAND.error }]}>
-                {selectedProvider.is_online ? '🟢 Online' : '⚫ Offline'}
+                {selectedProvider.is_online ? `🟢 ${t('online')}` : `⚫ ${t('offline')}`}
               </Text>
             </View>
           </View>
         </View>
       )}
 
-      {/* Legend */}
       <View style={[styles.legend, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: BRAND.primary }]} />
           <Text style={[styles.legendText, { color: isDark ? '#FFF' : BRAND.text }]}>
-            10km Search Radius
+            10km {t('search_radius')}
           </Text>
         </View>
         <View style={styles.legendItem}>
           <Text style={styles.legendIcon}>👷</Text>
           <Text style={[styles.legendText, { color: isDark ? '#FFF' : BRAND.text }]}>
-            Available Provider
+            {t('available_provider')}
           </Text>
         </View>
       </View>
@@ -256,7 +250,6 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 16, marginBottom: 20 },
   retryBtn: { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 10 },
   retryBtnText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
-  
   markerContainer: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -267,7 +260,6 @@ const styles = StyleSheet.create({
     borderColor: '#FFF',
   },
   markerIcon: { fontSize: 18 },
-  
   myLocationBtn: {
     position: 'absolute',
     bottom: 20,
@@ -284,7 +276,6 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   myLocationIcon: { fontSize: 24 },
-  
   infoCard: {
     position: 'absolute',
     bottom: 20,
@@ -304,11 +295,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  infoHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
+  infoHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   infoIcon: { fontSize: 28 },
   infoName: { fontSize: 18, fontWeight: 'bold' },
   closeIcon: { fontSize: 20, color: '#9CA3AF', padding: 4 },
@@ -316,7 +303,6 @@ const styles = StyleSheet.create({
   infoRow: { flexDirection: 'row', marginBottom: 6 },
   infoLabel: { width: 70, fontSize: 13, color: '#6B7280' },
   infoValue: { flex: 1, fontSize: 13, fontWeight: '500' },
-  
   legend: {
     position: 'absolute',
     top: 60,

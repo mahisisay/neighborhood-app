@@ -1,6 +1,6 @@
 // =============================================
 //  src/screens/OfferedJobsScreen.js
-//  BRAND COLORS: Ethiopian Green (#2E7D32) + Gold (#F9A825)
+//  WITH FULL AMHARIC SUPPORT
 // =============================================
 
 import React, { useState, useCallback } from 'react';
@@ -17,14 +17,11 @@ import { useSettings } from '../context/SettingsContext';
 
 const BRAND = {
   primary: '#2E7D32',
-  primaryDark: '#1B5E20',
   primaryLight: '#E8F5E9',
   secondary: '#F9A825',
-  secondaryLight: '#FFF8E1',
   text: '#374151',
   textLight: '#6B7280',
   white: '#FFFFFF',
-  dark: '#1F2937',
   error: '#DC2626',
   success: '#10B981',
 };
@@ -37,6 +34,8 @@ export default function OfferedJobsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [acceptingId, setAcceptingId] = useState(null);
 
+  const isDark = theme === 'dark';
+
   useFocusEffect(
     useCallback(() => { loadJobs(); }, [])
   );
@@ -46,7 +45,7 @@ export default function OfferedJobsScreen() {
       const data = await requestAPI.getOffered();
       setJobs(data.jobs || []);
     } catch (err) {
-      Alert.alert('Error', err.message);
+      Alert.alert(t('error'), err.message);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -55,12 +54,12 @@ export default function OfferedJobsScreen() {
 
   async function handleAccept(assignmentId, requestId) {
     Alert.alert(
-      'Accept Job?',
-      'You will need to pay 20 ETB service fee to unlock the seeker\'s contact details.',
+      t('accept_job'),
+      t('accept_fee_warning'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: 'Accept & Pay 20 ETB',
+          text: t('accept_pay'),
           onPress: async () => {
             setAcceptingId(assignmentId);
             try {
@@ -74,22 +73,22 @@ export default function OfferedJobsScreen() {
                 Linking.openURL(initData.payment_url);
                 setTimeout(() => {
                   Alert.alert(
-                    'Payment Complete?',
-                    'Did you complete the 20 ETB payment?',
+                    t('payment_complete'),
+                    t('payment_verify_message'),
                     [
-                      { text: 'Not yet', style: 'cancel' },
+                      { text: t('not_yet'), style: 'cancel' },
                       {
-                        text: 'Yes, verify',
+                        text: t('yes_verify'),
                         onPress: async () => {
                           try {
                             const verifyData = await paymentAPI.verify({ tx_ref: initData.tx_ref });
                             Alert.alert(
-                              '✅ Payment Successful!',
-                              `Seeker Contact Unlocked!\n\n👤 ${verifyData.unlocked_contact?.seeker_name}\n📞 ${verifyData.unlocked_contact?.seeker_phone}`
+                              t('payment_success'),
+                              `${t('seeker_contact')}:\n👤 ${verifyData.unlocked_contact?.seeker_name}\n📞 ${verifyData.unlocked_contact?.seeker_phone}`
                             );
                             loadJobs();
                           } catch (err) {
-                            Alert.alert('Error', err.message);
+                            Alert.alert(t('error'), err.message);
                           }
                         }
                       }
@@ -98,7 +97,7 @@ export default function OfferedJobsScreen() {
                 }, 3000);
               }
             } catch (err) {
-              Alert.alert('Error', err.message);
+              Alert.alert(t('error'), err.message);
             } finally {
               setAcceptingId(null);
             }
@@ -110,19 +109,19 @@ export default function OfferedJobsScreen() {
 
   async function handleReject(assignmentId) {
     Alert.alert(
-      'Reject Job?',
-      'Are you sure you want to reject this offer?',
+      t('reject_job'),
+      t('reject_confirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: 'Yes, Reject',
+          text: t('reject'),
           onPress: async () => {
             try {
               await requestAPI.reject(assignmentId);
               loadJobs();
-              Alert.alert('Rejected', 'Job offer has been declined');
+              Alert.alert(t('success'), t('job_rejected'));
             } catch (err) {
-              Alert.alert('Error', err.message);
+              Alert.alert(t('error'), err.message);
             }
           }
         }
@@ -134,24 +133,24 @@ export default function OfferedJobsScreen() {
     const isAccepting = acceptingId === item.assignment_id;
     
     return (
-      <View style={[styles.card, { backgroundColor: theme === 'dark' ? '#1E1E1E' : BRAND.white }]}>
+      <View style={[styles.card, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
         <View style={styles.cardHeader}>
           <View>
             <Text style={[styles.category, { color: BRAND.primary }]}>{item.category}</Text>
-            <Text style={[styles.distance, { color: BRAND.secondary }]}>📍 {item.distance_km} km away</Text>
+            <Text style={[styles.distance, { color: BRAND.secondary }]}>📍 {item.distance_km} km {t('away')}</Text>
           </View>
           <View style={[styles.statusBadge, { backgroundColor: BRAND.secondaryLight }]}>
-            <Text style={[styles.statusText, { color: BRAND.secondary }]}>Offered</Text>
+            <Text style={[styles.statusText, { color: BRAND.secondary }]}>{t('offered')}</Text>
           </View>
         </View>
         
-        <Text style={[styles.description, { color: theme === 'dark' ? '#CCC' : BRAND.text }]} numberOfLines={3}>
+        <Text style={[styles.description, { color: isDark ? '#CCC' : BRAND.text }]} numberOfLines={3}>
           {item.description}
         </Text>
         
         <View style={styles.seekerInfo}>
           <Text style={styles.seekerIcon}>👤</Text>
-          <Text style={[styles.seekerName, { color: theme === 'dark' ? '#CCC' : BRAND.text }]}>{item.seeker_name}</Text>
+          <Text style={[styles.seekerName, { color: isDark ? '#CCC' : BRAND.text }]}>{item.seeker_name}</Text>
         </View>
         
         <View style={styles.actionRow}>
@@ -163,19 +162,19 @@ export default function OfferedJobsScreen() {
             {isAccepting ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
-              <Text style={styles.acceptBtnText}>Accept & Pay 20 ETB</Text>
+              <Text style={styles.acceptBtnText}>{t('accept_pay')}</Text>
             )}
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.rejectBtn, { backgroundColor: theme === 'dark' ? '#2C2C2C' : '#F3F4F6' }]}
+            style={[styles.rejectBtn, { backgroundColor: isDark ? '#2C2C2C' : '#F3F4F6' }]}
             onPress={() => handleReject(item.assignment_id)}
           >
-            <Text style={[styles.rejectBtnText, { color: BRAND.error }]}>Reject</Text>
+            <Text style={[styles.rejectBtnText, { color: BRAND.error }]}>{t('reject')}</Text>
           </TouchableOpacity>
         </View>
         
         <View style={[styles.feeNote, { backgroundColor: BRAND.secondaryLight }]}>
-          <Text style={[styles.feeNoteText, { color: '#92400E' }]}>💰 20 ETB fee applies on acceptance</Text>
+          <Text style={[styles.feeNoteText, { color: '#92400E' }]}>💰 20 ETB {t('fee_applies')}</Text>
         </View>
       </View>
     );
@@ -183,9 +182,9 @@ export default function OfferedJobsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme === 'dark' ? '#121212' : '#F9FAFB' }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#F9FAFB' }]}>
         <View style={styles.header}>
-          <Text style={[styles.title, { color: theme === 'dark' ? '#FFF' : BRAND.text }]}>Offered Jobs</Text>
+          <Text style={[styles.title, { color: isDark ? '#FFF' : BRAND.text }]}>{t('offered_jobs')}</Text>
         </View>
         <ActivityIndicator size="large" color={BRAND.primary} style={{ marginTop: 40 }} />
       </SafeAreaView>
@@ -193,11 +192,11 @@ export default function OfferedJobsScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme === 'dark' ? '#121212' : '#F9FAFB' }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#F9FAFB' }]}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: theme === 'dark' ? '#FFF' : BRAND.text }]}>Offered Jobs</Text>
-        <Text style={[styles.subtitle, { color: theme === 'dark' ? '#AAA' : BRAND.textLight }]}>
-          {jobs.length} job(s) available near you
+        <Text style={[styles.title, { color: isDark ? '#FFF' : BRAND.text }]}>{t('offered_jobs')}</Text>
+        <Text style={[styles.subtitle, { color: isDark ? '#AAA' : BRAND.textLight }]}>
+          {jobs.length} {t('jobs_available')}
         </Text>
       </View>
 
@@ -215,9 +214,9 @@ export default function OfferedJobsScreen() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={styles.emptyIcon}>📋</Text>
-            <Text style={[styles.emptyTitle, { color: theme === 'dark' ? '#FFF' : BRAND.text }]}>No offered jobs</Text>
-            <Text style={[styles.emptyDesc, { color: theme === 'dark' ? '#AAA' : BRAND.textLight }]}>
-              Go online to receive job offers from nearby seekers
+            <Text style={[styles.emptyTitle, { color: isDark ? '#FFF' : BRAND.text }]}>{t('no_offered_jobs')}</Text>
+            <Text style={[styles.emptyDesc, { color: isDark ? '#AAA' : BRAND.textLight }]}>
+              {t('go_online_hint')}
             </Text>
           </View>
         }

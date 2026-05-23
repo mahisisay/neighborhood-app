@@ -1,7 +1,6 @@
 // =============================================
 //  src/screens/AcceptedJobsScreen.js
-//  BRAND COLORS: Ethiopian Green (#2E7D32) + Gold (#F9A825)
-//  Shows jobs the provider accepted.
+//  WITH FULL AMHARIC SUPPORT
 // =============================================
 
 import React, { useState, useCallback } from 'react';
@@ -17,25 +16,24 @@ import { useSettings } from '../context/SettingsContext';
 
 const BRAND = {
   primary: '#2E7D32',
-  primaryDark: '#1B5E20',
   primaryLight: '#E8F5E9',
   secondary: '#F9A825',
-  secondaryLight: '#FFF8E1',
   text: '#374151',
   textLight: '#6B7280',
   white: '#FFFFFF',
-  dark: '#1F2937',
   error: '#DC2626',
   success: '#10B981',
 };
 
 export default function AcceptedJobsScreen() {
   const { user } = useAuth();
-  const { theme } = useSettings();
+  const { t, theme } = useSettings();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [payingId, setPayingId] = useState(null);
+
+  const isDark = theme === 'dark';
 
   useFocusEffect(
     useCallback(() => { loadJobs(); }, [])
@@ -56,12 +54,12 @@ export default function AcceptedJobsScreen() {
 
   async function handlePayFee(requestId) {
     Alert.alert(
-      'Pay 20 ETB Service Fee',
-      'Pay to unlock the seeker\'s contact details and confirm the job.',
+      t('pay_20_title'),
+      t('pay_20_message'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: 'Pay 20 ETB',
+          text: t('pay_20'),
           onPress: async () => {
             setPayingId(requestId);
             try {
@@ -72,12 +70,12 @@ export default function AcceptedJobsScreen() {
               const verifyData = await paymentAPI.verify({ tx_ref: initData.tx_ref });
               const contact = verifyData.unlocked_contact;
               Alert.alert(
-                '✅ Payment Successful!',
-                `Seeker Contact Unlocked!\n\n👤 Name: ${contact.seeker_name}\n📞 Phone: ${contact.seeker_phone}\n\nCall them to confirm the job details!`
+                t('payment_success'),
+                `${t('seeker_contact')}:\n👤 ${contact.seeker_name}\n📞 ${contact.seeker_phone}`
               );
               loadJobs();
             } catch (err) {
-              Alert.alert('Payment Error', err.message);
+              Alert.alert(t('error'), err.message);
             } finally {
               setPayingId(null);
             }
@@ -87,13 +85,11 @@ export default function AcceptedJobsScreen() {
     );
   }
 
-  const isDark = theme === 'dark';
-
   if (loading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#F9FAFB' }]}>
         <View style={styles.header}>
-          <Text style={[styles.title, { color: isDark ? '#FFF' : BRAND.text }]}>Accepted Jobs</Text>
+          <Text style={[styles.title, { color: isDark ? '#FFF' : BRAND.text }]}>{t('accepted_jobs')}</Text>
         </View>
         <ActivityIndicator size="large" color={BRAND.primary} style={{ marginTop: 40 }} />
       </SafeAreaView>
@@ -103,9 +99,9 @@ export default function AcceptedJobsScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#F9FAFB' }]}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: isDark ? '#FFF' : BRAND.text }]}>Accepted Jobs</Text>
+        <Text style={[styles.title, { color: isDark ? '#FFF' : BRAND.text }]}>{t('accepted_jobs')}</Text>
         <Text style={[styles.subtitle, { color: isDark ? '#AAA' : BRAND.textLight }]}>
-          {jobs.length} job(s) accepted
+          {jobs.length} {t('jobs_accepted')}
         </Text>
       </View>
 
@@ -119,7 +115,7 @@ export default function AcceptedJobsScreen() {
               <Text style={[styles.description, { color: isDark ? '#CCC' : BRAND.text }]} numberOfLines={2}>
                 {item.description}
               </Text>
-              <Text style={[styles.distance, { color: BRAND.secondary }]}>📍 {item.distance_km} km away</Text>
+              <Text style={[styles.distance, { color: BRAND.secondary }]}>📍 {item.distance_km} km {t('away')}</Text>
               
               <TouchableOpacity
                 style={[styles.payBtn, { backgroundColor: BRAND.secondary }]}
@@ -129,7 +125,7 @@ export default function AcceptedJobsScreen() {
                 {payingId === item.request_id ? (
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
-                  <Text style={styles.payBtnText}>💳 Pay 20 ETB to Unlock Contact</Text>
+                  <Text style={styles.payBtnText}>💳 {t('pay_20_btn')}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -140,18 +136,18 @@ export default function AcceptedJobsScreen() {
       ) : (
         <View style={styles.empty}>
           <Text style={styles.emptyIcon}>✅</Text>
-          <Text style={[styles.emptyTitle, { color: isDark ? '#FFF' : BRAND.text }]}>No Accepted Jobs</Text>
+          <Text style={[styles.emptyTitle, { color: isDark ? '#FFF' : BRAND.text }]}>{t('no_accepted_jobs')}</Text>
           <Text style={[styles.emptyDesc, { color: isDark ? '#AAA' : BRAND.textLight }]}>
-            Jobs you accept will appear here.
+            {t('accepted_jobs_hint')}
           </Text>
           <View style={[styles.stepsBox, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
-            <Text style={[styles.stepsTitle, { color: isDark ? '#FFF' : BRAND.text }]}>How to complete a job:</Text>
-            <Text style={[styles.step, { color: isDark ? '#CCC' : BRAND.text }]}>1️⃣ Accept a job from "Offered Jobs"</Text>
-            <Text style={[styles.step, { color: isDark ? '#CCC' : BRAND.text }]}>2️⃣ Pay 20 ETB service fee</Text>
-            <Text style={[styles.step, { color: isDark ? '#CCC' : BRAND.text }]}>3️⃣ Get seeker's phone number</Text>
-            <Text style={[styles.step, { color: isDark ? '#CCC' : BRAND.text }]}>4️⃣ Call seeker and go to location</Text>
-            <Text style={[styles.step, { color: isDark ? '#CCC' : BRAND.text }]}>5️⃣ Complete the job</Text>
-            <Text style={[styles.step, { color: isDark ? '#CCC' : BRAND.text }]}>6️⃣ Seeker will rate you ⭐</Text>
+            <Text style={[styles.stepsTitle, { color: isDark ? '#FFF' : BRAND.text }]}>{t('how_to_complete')}</Text>
+            <Text style={[styles.step, { color: isDark ? '#CCC' : BRAND.text }]}>1️⃣ {t('step1')}</Text>
+            <Text style={[styles.step, { color: isDark ? '#CCC' : BRAND.text }]}>2️⃣ {t('step2')}</Text>
+            <Text style={[styles.step, { color: isDark ? '#CCC' : BRAND.text }]}>3️⃣ {t('step3')}</Text>
+            <Text style={[styles.step, { color: isDark ? '#CCC' : BRAND.text }]}>4️⃣ {t('step4')}</Text>
+            <Text style={[styles.step, { color: isDark ? '#CCC' : BRAND.text }]}>5️⃣ {t('step5')}</Text>
+            <Text style={[styles.step, { color: isDark ? '#CCC' : BRAND.text }]}>6️⃣ {t('step6')}</Text>
           </View>
         </View>
       )}

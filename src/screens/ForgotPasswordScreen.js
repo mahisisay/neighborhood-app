@@ -1,6 +1,7 @@
 // =============================================
 //  src/screens/ForgotPasswordScreen.js
 //  Forgot Password - Reset via phone
+//  WITH FULL AMHARIC SUPPORT
 // =============================================
 
 import React, { useState } from 'react';
@@ -23,8 +24,8 @@ const BRAND = {
 };
 
 export default function ForgotPasswordScreen({ navigation }) {
-  const { theme } = useSettings();
-  const [step, setStep] = useState(1); // 1: phone, 2: reset code, 3: new password
+  const { theme, t } = useSettings();
+  const [step, setStep] = useState(1);
   const [phone, setPhone] = useState('');
   const [resetToken, setResetToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -37,7 +38,7 @@ export default function ForgotPasswordScreen({ navigation }) {
   async function handleRequestReset() {
     const phoneError = getPhoneError(phone);
     if (phoneError) {
-      Alert.alert('Error', phoneError);
+      Alert.alert(t('error'), phoneError);
       return;
     }
     
@@ -45,10 +46,10 @@ export default function ForgotPasswordScreen({ navigation }) {
     try {
       const formattedPhone = formatPhoneForDisplay(phone);
       const data = await authAPI.forgotPassword({ phone: formattedPhone });
-      Alert.alert('Code Sent', data.message);
+      Alert.alert(t('reset_code'), data.message);
       setStep(2);
     } catch (err) {
-      Alert.alert('Error', err.message);
+      Alert.alert(t('error'), err.message);
     } finally {
       setLoading(false);
     }
@@ -56,7 +57,7 @@ export default function ForgotPasswordScreen({ navigation }) {
   
   async function handleVerifyCode() {
     if (!resetToken || resetToken.length !== 6) {
-      Alert.alert('Error', 'Please enter the 6-digit reset code');
+      Alert.alert(t('error'), t('enter_code'));
       return;
     }
     setStep(3);
@@ -64,14 +65,14 @@ export default function ForgotPasswordScreen({ navigation }) {
   
   async function handleResetPassword() {
     const newErrors = {};
-    if (!newPassword) newErrors.newPassword = 'New password is required';
-    if (newPassword.length < 6) newErrors.newPassword = 'Password must be at least 6 characters';
-    if (newPassword !== confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
+    if (!newPassword) newErrors.newPassword = t('password_required');
+    if (newPassword.length < 6) newErrors.newPassword = t('password_length');
+    if (newPassword !== confirmPassword) newErrors.confirmPassword = t('password_mismatch');
     
     setErrors(newErrors);
     
     if (Object.keys(newErrors).length > 0) {
-      Alert.alert('Error', Object.values(newErrors)[0]);
+      Alert.alert(t('error'), Object.values(newErrors)[0]);
       return;
     }
     
@@ -84,12 +85,12 @@ export default function ForgotPasswordScreen({ navigation }) {
         newPassword: newPassword
       });
       Alert.alert(
-        'Success',
-        'Password reset successful. Please login with your new password.',
-        [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
+        t('success'),
+        t('reset_success'),
+        [{ text: t('ok'), onPress: () => navigation.navigate('Login') }]
       );
     } catch (err) {
-      Alert.alert('Error', err.message);
+      Alert.alert(t('error'), err.message);
     } finally {
       setLoading(false);
     }
@@ -99,25 +100,25 @@ export default function ForgotPasswordScreen({ navigation }) {
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#F9FAFB' }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={[styles.backBtn, { color: BRAND.primary }]}>← Back</Text>
+          <Text style={[styles.backBtn, { color: BRAND.primary }]}>← {t('back')}</Text>
         </TouchableOpacity>
       </View>
       
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <View style={styles.content}>
-          <Text style={[styles.title, { color: isDark ? '#FFF' : BRAND.primary }]}>Forgot Password?</Text>
+          <Text style={[styles.title, { color: isDark ? '#FFF' : BRAND.primary }]}>{t('forgot_password')}</Text>
           <Text style={[styles.subtitle, { color: isDark ? '#AAA' : BRAND.textLight }]}>
-            {step === 1 && "Enter your phone number to receive a reset code"}
-            {step === 2 && "Enter the 6-digit code sent to your phone"}
-            {step === 3 && "Create your new password"}
+            {step === 1 && t('enter_phone')}
+            {step === 2 && t('enter_code')}
+            {step === 3 && t('enter_new_password')}
           </Text>
           
           {step === 1 && (
             <>
-              <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>Phone Number</Text>
+              <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>{t('phone_number')}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: isDark ? '#2C2C2C' : '#F9FAFB' }]}
-                placeholder="+251912345678"
+                placeholder={t('phone_placeholder')}
                 placeholderTextColor={isDark ? '#888' : BRAND.textLight}
                 keyboardType="phone-pad"
                 value={phone}
@@ -128,17 +129,17 @@ export default function ForgotPasswordScreen({ navigation }) {
                 onPress={handleRequestReset}
                 disabled={loading}
               >
-                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Send Reset Code</Text>}
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{t('send_code')}</Text>}
               </TouchableOpacity>
             </>
           )}
           
           {step === 2 && (
             <>
-              <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>Reset Code</Text>
+              <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>{t('reset_code')}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: isDark ? '#2C2C2C' : '#F9FAFB' }]}
-                placeholder="Enter 6-digit code"
+                placeholder={t('enter_code_placeholder')}
                 placeholderTextColor={isDark ? '#888' : BRAND.textLight}
                 keyboardType="number-pad"
                 maxLength={6}
@@ -150,26 +151,26 @@ export default function ForgotPasswordScreen({ navigation }) {
                 onPress={handleVerifyCode}
                 disabled={loading}
               >
-                <Text style={styles.btnText}>Verify Code</Text>
+                <Text style={styles.btnText}>{t('verify_code')}</Text>
               </TouchableOpacity>
             </>
           )}
           
           {step === 3 && (
             <>
-              <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>New Password</Text>
+              <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>{t('new_password')}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: isDark ? '#2C2C2C' : '#F9FAFB' }]}
-                placeholder="At least 6 characters"
+                placeholder={t('password_placeholder')}
                 placeholderTextColor={isDark ? '#888' : BRAND.textLight}
                 secureTextEntry
                 value={newPassword}
                 onChangeText={setNewPassword}
               />
-              <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>Confirm Password</Text>
+              <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>{t('confirm_password')}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: isDark ? '#2C2C2C' : '#F9FAFB' }]}
-                placeholder="Re-enter new password"
+                placeholder={t('confirm_password_placeholder')}
                 placeholderTextColor={isDark ? '#888' : BRAND.textLight}
                 secureTextEntry
                 value={confirmPassword}
@@ -180,14 +181,14 @@ export default function ForgotPasswordScreen({ navigation }) {
                 onPress={handleResetPassword}
                 disabled={loading}
               >
-                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Reset Password</Text>}
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{t('reset_password')}</Text>}
               </TouchableOpacity>
             </>
           )}
           
           <TouchableOpacity onPress={() => navigation.navigate('Login')}>
             <Text style={[styles.linkText, { color: isDark ? '#AAA' : BRAND.textLight }]}>
-              Remember your password? <Text style={[styles.link, { color: BRAND.primary }]}>Login</Text>
+              {t('remember_password')} <Text style={[styles.link, { color: BRAND.primary }]}>{t('login')}</Text>
             </Text>
           </TouchableOpacity>
         </View>

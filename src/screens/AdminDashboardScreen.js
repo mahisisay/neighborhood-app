@@ -1,8 +1,6 @@
 // =============================================
 //  src/screens/AdminDashboardScreen.js
-//  BRAND COLORS: Ethiopian Green (#2E7D32) + Gold (#F9A825)
-//  FIXED: Added reject provider functionality
-//  FIXED: Shows provider documents and experience
+//  WITH FULL AMHARIC SUPPORT
 // =============================================
 
 import React, { useState, useCallback } from 'react';
@@ -18,33 +16,28 @@ import { useSettings } from '../context/SettingsContext';
 
 const BRAND = {
   primary: '#2E7D32',
-  primaryDark: '#1B5E20',
   primaryLight: '#E8F5E9',
   secondary: '#F9A825',
-  secondaryLight: '#FFF8E1',
   text: '#374151',
   textLight: '#6B7280',
   white: '#FFFFFF',
-  dark: '#1F2937',
   error: '#DC2626',
   success: '#10B981',
 };
 
 export default function AdminDashboardScreen() {
   const { user } = useAuth();
-  const { theme } = useSettings();
+  const { theme, t } = useSettings();
   const [stats, setStats] = useState({
-    total_seekers: 0, 
-    active_providers: 0, 
-    pending_providers: 0,
-    total_requests: 0, 
-    completed_jobs: 0, 
-    total_revenue_ETB: '0'
+    total_seekers: 0, active_providers: 0, pending_providers: 0,
+    total_requests: 0, completed_jobs: 0, total_revenue_ETB: '0'
   });
   const [pendingProviders, setPendingProviders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [processingId, setProcessingId] = useState(null);
+
+  const isDark = theme === 'dark';
 
   useFocusEffect(
     useCallback(() => { loadData(); }, [])
@@ -59,8 +52,7 @@ export default function AdminDashboardScreen() {
       setStats(statsData.stats);
       setPendingProviders(pendingData.providers || []);
     } catch (err) {
-      console.log('Load data error:', err);
-      Alert.alert('Error', err.message);
+      Alert.alert(t('error'), err.message);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -71,10 +63,10 @@ export default function AdminDashboardScreen() {
     setProcessingId(providerId);
     try {
       await adminAPI.verifyProvider(providerId);
-      Alert.alert('Success', 'Provider has been verified and activated');
+      Alert.alert(t('success'), t('provider_verified'));
       loadData();
     } catch (err) {
-      Alert.alert('Error', err.message);
+      Alert.alert(t('error'), err.message);
     } finally {
       setProcessingId(null);
     }
@@ -82,21 +74,21 @@ export default function AdminDashboardScreen() {
 
   async function handleReject(providerId) {
     Alert.alert(
-      'Reject Provider',
-      'Are you sure you want to reject this provider? They will not be able to offer services.',
+      t('reject_provider'),
+      t('reject_confirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: 'Reject',
+          text: t('reject'),
           style: 'destructive',
           onPress: async () => {
             setProcessingId(providerId);
             try {
               await adminAPI.rejectProvider(providerId);
-              Alert.alert('Success', 'Provider has been rejected');
+              Alert.alert(t('success'), t('provider_rejected'));
               loadData();
             } catch (err) {
-              Alert.alert('Error', err.message);
+              Alert.alert(t('error'), err.message);
             } finally {
               setProcessingId(null);
             }
@@ -106,65 +98,52 @@ export default function AdminDashboardScreen() {
     );
   }
 
-  const isDark = theme === 'dark';
-
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#F9FAFB' }]}>
       <ScrollView
         contentContainerStyle={styles.inner}
-        refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={() => { 
-              setRefreshing(true); 
-              loadData(); 
-            }} 
-          />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(); }} />}
       >
-        {/* Admin Header */}
         <View style={styles.header}>
-          <Text style={[styles.title, { color: isDark ? '#FFF' : BRAND.text }]}>Admin Panel</Text>
+          <Text style={[styles.title, { color: isDark ? '#FFF' : BRAND.text }]}>{t('admin_panel')}</Text>
           <Text style={[styles.adminName, { color: BRAND.primary }]}>👮 {user?.name || 'Admin'}</Text>
         </View>
 
-        {/* Stats Grid */}
         <View style={styles.statsGrid}>
           <View style={[styles.statCard, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
             <Text style={styles.statIcon}>🔍</Text>
             <Text style={[styles.statNumber, { color: BRAND.primary }]}>{stats.total_seekers}</Text>
-            <Text style={[styles.statLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>Seekers</Text>
+            <Text style={[styles.statLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('total_seekers')}</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
             <Text style={styles.statIcon}>👷</Text>
             <Text style={[styles.statNumber, { color: BRAND.primary }]}>{stats.active_providers}</Text>
-            <Text style={[styles.statLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>Active Providers</Text>
+            <Text style={[styles.statLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('active_providers')}</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
             <Text style={styles.statIcon}>⏳</Text>
             <Text style={[styles.statNumber, { color: BRAND.secondary }]}>{stats.pending_providers}</Text>
-            <Text style={[styles.statLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>Pending</Text>
+            <Text style={[styles.statLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('pending_providers')}</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
             <Text style={styles.statIcon}>📋</Text>
             <Text style={[styles.statNumber, { color: BRAND.primary }]}>{stats.total_requests}</Text>
-            <Text style={[styles.statLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>Requests</Text>
+            <Text style={[styles.statLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('total_requests')}</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
             <Text style={styles.statIcon}>🏁</Text>
             <Text style={[styles.statNumber, { color: BRAND.primary }]}>{stats.completed_jobs}</Text>
-            <Text style={[styles.statLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>Completed</Text>
+            <Text style={[styles.statLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('completed_jobs')}</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
             <Text style={styles.statIcon}>💰</Text>
             <Text style={[styles.statNumber, { color: BRAND.secondary }]}>{stats.total_revenue_ETB}</Text>
-            <Text style={[styles.statLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>Revenue (ETB)</Text>
+            <Text style={[styles.statLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('total_revenue')}</Text>
           </View>
         </View>
 
-        {/* Pending Providers Section */}
         <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : BRAND.text }]}>
-          Pending Verification ({pendingProviders.length})
+          {t('pending_verification')} ({pendingProviders.length})
         </Text>
 
         {loading ? (
@@ -173,7 +152,7 @@ export default function AdminDashboardScreen() {
           <View style={[styles.emptyCard, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
             <Text style={styles.emptyIcon}>✅</Text>
             <Text style={[styles.emptyText, { color: isDark ? '#AAA' : BRAND.textLight }]}>
-              No pending providers
+              {t('no_pending_providers')}
             </Text>
           </View>
         ) : (
@@ -182,7 +161,7 @@ export default function AdminDashboardScreen() {
               <View style={styles.providerHeader}>
                 <Text style={[styles.providerName, { color: isDark ? '#FFF' : BRAND.text }]}>{provider.name}</Text>
                 <Text style={[styles.providerDate, { color: isDark ? '#AAA' : BRAND.textLight }]}>
-                  Registered: {new Date(provider.created_at).toLocaleDateString()}
+                  {t('registered')}: {new Date(provider.created_at).toLocaleDateString()}
                 </Text>
               </View>
 
@@ -198,11 +177,11 @@ export default function AdminDashboardScreen() {
                     style={[styles.docBtn, { backgroundColor: BRAND.primaryLight }]}
                     onPress={() => Linking.openURL(provider.id_document_url)}
                   >
-                    <Text style={[styles.docBtnText, { color: BRAND.primary }]}>🪪 View ID</Text>
+                    <Text style={[styles.docBtnText, { color: BRAND.primary }]}>🪪 {t('view_id')}</Text>
                   </TouchableOpacity>
                 ) : (
                   <View style={[styles.docBtn, { backgroundColor: '#FEE2E2' }]}>
-                    <Text style={[styles.docBtnText, { color: BRAND.error }]}>❌ No ID</Text>
+                    <Text style={[styles.docBtnText, { color: BRAND.error }]}>❌ {t('no_id')}</Text>
                   </View>
                 )}
                 {provider.cert_url ? (
@@ -210,11 +189,11 @@ export default function AdminDashboardScreen() {
                     style={[styles.docBtn, { backgroundColor: BRAND.secondaryLight }]}
                     onPress={() => Linking.openURL(provider.cert_url)}
                   >
-                    <Text style={[styles.docBtnText, { color: BRAND.secondary }]}>📜 View Certificate</Text>
+                    <Text style={[styles.docBtnText, { color: BRAND.secondary }]}>📜 {t('view_certificate')}</Text>
                   </TouchableOpacity>
                 ) : (
                   <View style={[styles.docBtn, { backgroundColor: '#F3F4F6' }]}>
-                    <Text style={[styles.docBtnText, { color: BRAND.textLight }]}>📄 No Certificate</Text>
+                    <Text style={[styles.docBtnText, { color: BRAND.textLight }]}>📄 {t('no_certificate')}</Text>
                   </View>
                 )}
               </View>
@@ -228,7 +207,7 @@ export default function AdminDashboardScreen() {
                   {processingId === provider.id ? (
                     <ActivityIndicator size="small" color="#fff" />
                   ) : (
-                    <Text style={styles.verifyBtnText}>✅ Verify</Text>
+                    <Text style={styles.verifyBtnText}>✅ {t('verify')}</Text>
                   )}
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -236,7 +215,7 @@ export default function AdminDashboardScreen() {
                   onPress={() => handleReject(provider.id)}
                   disabled={processingId === provider.id}
                 >
-                  <Text style={[styles.rejectBtnText, { color: BRAND.error }]}>❌ Reject</Text>
+                  <Text style={[styles.rejectBtnText, { color: BRAND.error }]}>❌ {t('reject')}</Text>
                 </TouchableOpacity>
               </View>
             </View>

@@ -1,6 +1,6 @@
 // =============================================
-//  MyRequestsScreen.js — COMPLETE
-//  WITH RATE & REVIEW FEATURE
+//  src/screens/MyRequestsScreen.js
+//  WITH FULL AMHARIC SUPPORT
 // =============================================
 
 import React, { useState, useCallback } from 'react';
@@ -17,34 +17,33 @@ import { useSettings } from '../context/SettingsContext';
 
 const BRAND = {
   primary: '#2E7D32',
-  primaryDark: '#1B5E20',
   primaryLight: '#E8F5E9',
   secondary: '#F9A825',
-  secondaryLight: '#FFF8E1',
   text: '#374151',
   textLight: '#6B7280',
   white: '#FFFFFF',
-  dark: '#1F2937',
   error: '#DC2626',
   success: '#10B981',
 };
 
 const STATUS_CONFIG = {
-  pending:   { color: '#F59E0B', bg: '#FEF3C7', label: '⏳ Pending',   desc: 'Waiting for a provider' },
-  paid:      { color: '#10B981', bg: '#D1FAE5', label: '💳 Paid',      desc: 'Provider contact unlocked' },
-  assigned:  { color: BRAND.primary, bg: BRAND.primaryLight, label: '✅ Assigned',  desc: 'Provider accepted' },
-  completed: { color: '#6B7280', bg: '#F3F4F6', label: '🏁 Done',      desc: 'Job completed' },
-  cancelled: { color: '#EF4444', bg: '#FEE2E2', label: '❌ Cancelled', desc: 'Request cancelled' },
+  pending:   { color: '#F59E0B', bg: '#FEF3C7', label: '⏳ ' },
+  paid:      { color: '#10B981', bg: '#D1FAE5', label: '💳 ' },
+  assigned:  { color: BRAND.primary, bg: BRAND.primaryLight, label: '✅ ' },
+  completed: { color: '#6B7280', bg: '#F3F4F6', label: '🏁 ' },
+  cancelled: { color: '#EF4444', bg: '#FEE2E2', label: '❌ ' },
 };
 
 export default function MyRequestsScreen() {
   const navigation = useNavigation();
   const { logout, user } = useAuth();
-  const { theme } = useSettings();
+  const { theme, t } = useSettings();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [payingId, setPayingId] = useState(null);
+
+  const isDark = theme === 'dark';
 
   useFocusEffect(useCallback(() => { loadRequests(); }, []));
 
@@ -53,7 +52,7 @@ export default function MyRequestsScreen() {
       const data = await requestAPI.getMyRequests();
       setRequests(data.requests || []);
     } catch (err) {
-      Alert.alert('Error', err.message);
+      Alert.alert(t('error'), err.message);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -62,12 +61,12 @@ export default function MyRequestsScreen() {
 
   async function handlePayment(request) {
     Alert.alert(
-      'Pay 100 ETB Commitment Fee',
-      'You will be redirected to Chapa to complete the payment.',
+      t('pay_100_title'),
+      t('pay_100_message'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: 'Pay Now',
+          text: t('pay_now'),
           onPress: async () => {
             setPayingId(request.id);
             try {
@@ -80,22 +79,22 @@ export default function MyRequestsScreen() {
                 Linking.openURL(initData.payment_url);
                 setTimeout(() => {
                   Alert.alert(
-                    'Did you complete payment?',
-                    'Come back here after paying on Chapa.',
+                    t('payment_complete'),
+                    t('payment_verify_message'),
                     [
-                      { text: 'Not yet', style: 'cancel' },
+                      { text: t('not_yet'), style: 'cancel' },
                       {
-                        text: 'Yes, verify',
+                        text: t('yes_verify'),
                         onPress: async () => {
                           try {
                             const verifyData = await paymentAPI.verify({ tx_ref: initData.tx_ref });
                             Alert.alert(
-                              '✅ Success!',
-                              `Provider:\n👤 ${verifyData.unlocked_contact?.provider_name}\n📞 ${verifyData.unlocked_contact?.provider_phone}`
+                              t('payment_success'),
+                              `${t('provider')}:\n👤 ${verifyData.unlocked_contact?.provider_name}\n📞 ${verifyData.unlocked_contact?.provider_phone}`
                             );
                             loadRequests();
                           } catch (err) {
-                            Alert.alert('Error', err.message);
+                            Alert.alert(t('error'), err.message);
                           }
                         }
                       }
@@ -103,10 +102,10 @@ export default function MyRequestsScreen() {
                   );
                 }, 3000);
               } else {
-                Alert.alert('Error', 'Could not get payment URL');
+                Alert.alert(t('error'), t('payment_url_error'));
               }
             } catch (err) {
-              Alert.alert('Payment Error', err.message);
+              Alert.alert(t('error'), err.message);
             } finally {
               setPayingId(null);
             }
@@ -116,28 +115,26 @@ export default function MyRequestsScreen() {
     );
   }
 
-  const isDark = theme === 'dark';
-
   function renderRequest({ item }) {
-    const status = STATUS_CONFIG[item.status] || STATUS_CONFIG.pending;
+    const statusConfig = STATUS_CONFIG[item.status] || STATUS_CONFIG.pending;
     const isPaying = payingId === item.id;
+    const statusLabel = t(item.status) || item.status;
 
     return (
       <View style={[styles.card, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
         <View style={styles.cardHeader}>
           <Text style={[styles.category, { color: BRAND.primary }]}>{item.category}</Text>
-          <View style={[styles.badge, { backgroundColor: status.bg }]}>
-            <Text style={[styles.badgeText, { color: status.color }]}>{status.label}</Text>
+          <View style={[styles.badge, { backgroundColor: statusConfig.bg }]}>
+            <Text style={[styles.badgeText, { color: statusConfig.color }]}>
+              {statusConfig.label} {statusLabel}
+            </Text>
           </View>
         </View>
         <Text style={[styles.description, { color: isDark ? '#CCC' : BRAND.text }]} numberOfLines={2}>
           {item.description}
         </Text>
-        <Text style={[styles.statusDesc, { color: isDark ? '#AAA' : BRAND.textLight }]}>{status.desc}</Text>
         <Text style={[styles.date, { color: isDark ? '#666' : '#D1D5DB' }]}>
-          {new Date(item.created_at).toLocaleDateString('en-GB', {
-            day: 'numeric', month: 'short', year: 'numeric'
-          })}
+          {new Date(item.created_at).toLocaleDateString('en-GB')}
         </Text>
 
         {item.status === 'assigned' && (
@@ -148,12 +145,11 @@ export default function MyRequestsScreen() {
           >
             {isPaying
               ? <ActivityIndicator color="#fff" size="small" />
-              : <Text style={styles.payBtnText}>💳 Pay 100 ETB to Unlock Contact</Text>
+              : <Text style={styles.payBtnText}>💳 {t('pay_now')}</Text>
             }
           </TouchableOpacity>
         )}
 
-        {/* RATE BUTTON - Shows only when job is completed */}
         {item.status === 'completed' && (
           <TouchableOpacity
             style={[styles.rateBtn, { backgroundColor: BRAND.secondary }]}
@@ -163,7 +159,7 @@ export default function MyRequestsScreen() {
               providerName: item.provider_name
             })}
           >
-            <Text style={styles.rateBtnText}>⭐ Rate Provider</Text>
+            <Text style={styles.rateBtnText}>⭐ {t('rate_provider')}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -174,9 +170,9 @@ export default function MyRequestsScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#F9FAFB' }]}>
         <View style={[styles.header, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
-          <Text style={[styles.title, { color: isDark ? '#FFF' : BRAND.text }]}>My Requests</Text>
+          <Text style={[styles.title, { color: isDark ? '#FFF' : BRAND.text }]}>{t('my_requests')}</Text>
           <TouchableOpacity onPress={logout}>
-            <Text style={[styles.logoutText, { color: BRAND.error }]}>Logout</Text>
+            <Text style={[styles.logoutText, { color: BRAND.error }]}>{t('logout')}</Text>
           </TouchableOpacity>
         </View>
         <ActivityIndicator size="large" color={BRAND.primary} style={{ marginTop: 40 }} />
@@ -187,9 +183,9 @@ export default function MyRequestsScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#F9FAFB' }]}>
       <View style={[styles.header, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
-        <Text style={[styles.title, { color: isDark ? '#FFF' : BRAND.text }]}>My Requests</Text>
+        <Text style={[styles.title, { color: isDark ? '#FFF' : BRAND.text }]}>{t('my_requests')}</Text>
         <TouchableOpacity onPress={logout}>
-          <Text style={[styles.logoutText, { color: BRAND.error }]}>Logout</Text>
+          <Text style={[styles.logoutText, { color: BRAND.error }]}>{t('logout')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -202,10 +198,10 @@ export default function MyRequestsScreen() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={styles.emptyIcon}>📋</Text>
-            <Text style={[styles.emptyTitle, { color: isDark ? '#FFF' : BRAND.text }]}>No requests yet</Text>
-            <Text style={[styles.emptyDesc, { color: isDark ? '#AAA' : BRAND.textLight }]}>Post your first service request!</Text>
+            <Text style={[styles.emptyTitle, { color: isDark ? '#FFF' : BRAND.text }]}>{t('no_requests')}</Text>
+            <Text style={[styles.emptyDesc, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('no_requests_desc')}</Text>
             <TouchableOpacity style={[styles.postBtn, { backgroundColor: BRAND.primary }]} onPress={() => navigation.navigate('PostRequest')}>
-              <Text style={styles.postBtnText}>Post a Request</Text>
+              <Text style={styles.postBtnText}>{t('post_request_btn')}</Text>
             </TouchableOpacity>
           </View>
         }
@@ -226,9 +222,8 @@ const styles = StyleSheet.create({
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   badgeText: { fontSize: 12, fontWeight: '600' },
   description: { fontSize: 14, lineHeight: 20, marginBottom: 4 },
-  statusDesc: { fontSize: 12, marginBottom: 4 },
-  date: { fontSize: 12 },
-  payBtn: { borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginTop: 10 },
+  date: { fontSize: 12, marginBottom: 8 },
+  payBtn: { borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginTop: 8 },
   payBtnText: { color: '#FFF', fontWeight: '600', fontSize: 14 },
   rateBtn: { borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginTop: 8 },
   rateBtnText: { color: '#FFF', fontWeight: '600', fontSize: 14 },

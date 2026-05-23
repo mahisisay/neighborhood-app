@@ -1,6 +1,6 @@
 // =============================================
 //  src/screens/AboutScreen.js
-//  Professional About Page
+//  WITH FULL AMHARIC SUPPORT
 // =============================================
 
 import React from 'react';
@@ -26,61 +26,55 @@ export default function AboutScreen({ navigation }) {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#F9FAFB' }]}>
-      {/* Header */}
       <View style={[styles.header, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white, borderBottomColor: isDark ? '#333' : '#E5E7EB' }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={[styles.backBtnText, { color: BRAND.primary }]}>← {t('back') || 'Back'}</Text>
+          <Text style={[styles.backBtnText, { color: BRAND.primary }]}>← {t('back')}</Text>
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: isDark ? '#FFF' : BRAND.text }]}>{t('about') || 'About'}</Text>
+        <Text style={[styles.headerTitle, { color: isDark ? '#FFF' : BRAND.text }]}>{t('about')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.inner}>
-        {/* Logo Section */}
         <View style={styles.logoSection}>
           <Text style={styles.logoIcon}>🏘️</Text>
           <Text style={[styles.appName, { color: BRAND.primary }]}>Neighborhood</Text>
-          <Text style={[styles.appNameFull, { color: isDark ? '#FFF' : BRAND.text }]}>Service Finder</Text>
-          <Text style={[styles.version, { color: isDark ? '#AAA' : BRAND.textLight }]}>Version 1.0.0</Text>
+          <Text style={[styles.appNameFull, { color: isDark ? '#FFF' : BRAND.text }]}>{t('app_name')}</Text>
+          <Text style={[styles.version, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('version')} 1.0.0</Text>
         </View>
 
-        {/* Description Card */}
         <View style={[styles.card, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
-          <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : BRAND.text }]}>📖 {t('app_description') || 'About This App'}</Text>
+          <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : BRAND.text }]}>📖 {t('app_description')}</Text>
           <Text style={[styles.cardText, { color: isDark ? '#CCC' : BRAND.text }]}>
-            Neighborhood Service Finder connects residents of Gondar city with verified local service providers. 
-            From home maintenance and cleaning to tutoring and technical support, find trusted professionals near you.
+            {t('about_text')}
           </Text>
         </View>
 
-        {/* Developer Info Card */}
         <View style={[styles.card, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
-          <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : BRAND.text }]}>👨‍💻 Developer Information</Text>
+          <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : BRAND.text }]}>👨‍💻 {t('developer_info')}</Text>
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>Developer:</Text>
+            <Text style={[styles.infoLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('developer')}:</Text>
             <Text style={[styles.infoValue, { color: isDark ? '#FFF' : BRAND.text }]}>Mahlat Sisay</Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>University:</Text>
+            <Text style={[styles.infoLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('university')}:</Text>
             <Text style={[styles.infoValue, { color: isDark ? '#FFF' : BRAND.text }]}>University of Gondar</Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>Department:</Text>
+            <Text style={[styles.infoLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('department')}:</Text>
             <Text style={[styles.infoValue, { color: isDark ? '#FFF' : BRAND.text }]}>Information Systems</Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>Location:</Text>
+            <Text style={[styles.infoLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('location')}:</Text>
             <Text style={[styles.infoValue, { color: isDark ? '#FFF' : BRAND.text }]}>Gondar, Ethiopia</Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>Year:</Text>
+            <Text style={[styles.infoLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('year')}:</Text>
             <Text style={[styles.infoValue, { color: isDark ? '#FFF' : BRAND.text }]}>2026</Text>
           </View>
         </View>
 
-        {/* Contact Card */}
         <View style={[styles.card, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
-          <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : BRAND.text }]}>📞 {t('contact_us') || 'Contact Us'}</Text>
+          <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : BRAND.text }]}>📞 {t('contact_us')}</Text>
           <TouchableOpacity style={styles.contactRow} onPress={() => Linking.openURL('mailto:support@nsf.com')}>
             <Text style={styles.contactIcon}>📧</Text>
             <Text style={[styles.contactText, { color: BRAND.primary }]}>support@neighborhoodfinder.com</Text>
@@ -89,51 +83,45 @@ export default function AboutScreen({ navigation }) {
             <Text style={styles.contactIcon}>📞</Text>
             <Text style={[styles.contactText, { color: BRAND.primary }]}>+251-912-345-678</Text>
           </TouchableOpacity>
-          <View style={styles.contactRow}>
-            <Text style={styles.contactIcon}>🌐</Text>
-            <Text style={[styles.contactText, { color: isDark ? '#AAA' : BRAND.textLight }]}>www.neighborhoodfinder.com</Text>
-          </View>
         </View>
 
-        {/* Features Card */}
         <View style={[styles.card, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
-          <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : BRAND.text }]}>✨ Key Features</Text>
+          <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : BRAND.text }]}>✨ {t('key_features')}</Text>
           <View style={styles.featureRow}>
             <Text style={styles.featureIcon}>📍</Text>
-            <Text style={[styles.featureText, { color: isDark ? '#CCC' : BRAND.text }]}>GPS-based provider matching within 10km</Text>
+            <Text style={[styles.featureText, { color: isDark ? '#CCC' : BRAND.text }]}>{t('feature_gps')}</Text>
           </View>
           <View style={styles.featureRow}>
             <Text style={styles.featureIcon}>✅</Text>
-            <Text style={[styles.featureText, { color: isDark ? '#CCC' : BRAND.text }]}>Verified provider profiles with documents</Text>
+            <Text style={[styles.featureText, { color: isDark ? '#CCC' : BRAND.text }]}>{t('feature_verified')}</Text>
           </View>
           <View style={styles.featureRow}>
             <Text style={styles.featureIcon}>⭐</Text>
-            <Text style={[styles.featureText, { color: isDark ? '#CCC' : BRAND.text }]}>Rating and review system</Text>
+            <Text style={[styles.featureText, { color: isDark ? '#CCC' : BRAND.text }]}>{t('feature_rating')}</Text>
           </View>
           <View style={styles.featureRow}>
             <Text style={styles.featureIcon}>💰</Text>
-            <Text style={[styles.featureText, { color: isDark ? '#CCC' : BRAND.text }]}>Secure Chapa payment integration</Text>
+            <Text style={[styles.featureText, { color: isDark ? '#CCC' : BRAND.text }]}>{t('feature_payment')}</Text>
           </View>
           <View style={styles.featureRow}>
             <Text style={styles.featureIcon}>🔄</Text>
-            <Text style={[styles.featureText, { color: isDark ? '#CCC' : BRAND.text }]}>Switch between Seeker and Provider roles</Text>
+            <Text style={[styles.featureText, { color: isDark ? '#CCC' : BRAND.text }]}>{t('feature_roles')}</Text>
           </View>
           <View style={styles.featureRow}>
             <Text style={styles.featureIcon}>🌙</Text>
-            <Text style={[styles.featureText, { color: isDark ? '#CCC' : BRAND.text }]}>Light and Dark theme support</Text>
+            <Text style={[styles.featureText, { color: isDark ? '#CCC' : BRAND.text }]}>{t('feature_theme')}</Text>
           </View>
           <View style={styles.featureRow}>
             <Text style={styles.featureIcon}>📱</Text>
-            <Text style={[styles.featureText, { color: isDark ? '#CCC' : BRAND.text }]}>Amharic and English language support</Text>
+            <Text style={[styles.featureText, { color: isDark ? '#CCC' : BRAND.text }]}>{t('feature_language')}</Text>
           </View>
         </View>
 
-        {/* OK Button */}
         <TouchableOpacity
           style={[styles.okBtn, { backgroundColor: BRAND.primary }]}
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.okBtnText}>{t('ok') || 'OK'}</Text>
+          <Text style={styles.okBtnText}>{t('ok')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

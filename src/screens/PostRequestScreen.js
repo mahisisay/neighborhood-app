@@ -1,7 +1,6 @@
 // =============================================
 //  src/screens/PostRequestScreen.js
-//  UPDATED: Now sends subcategory_id to backend for correct matching
-//  Fixed: Providers will only receive jobs that match their services
+//  WITH FULL AMHARIC SUPPORT
 // =============================================
 
 import React, { useState, useEffect } from 'react';
@@ -14,6 +13,7 @@ import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { requestAPI } from '../api/client';
 import { getDescriptionError } from '../utils/validation';
+import { useSettings } from '../context/SettingsContext';
 
 const BRAND = {
   primary: '#2E7D32',
@@ -32,6 +32,7 @@ const ICON_MAP = {
 };
 
 export default function PostRequestScreen({ navigation, route }) {
+  const { t, theme } = useSettings();
   const preselectedCategory = route.params?.category || null;
   const preselectedSubcategory = route.params?.subcategory_name || null;
   const preselectedCategoryId = route.params?.category_id || null;
@@ -46,6 +47,8 @@ export default function PostRequestScreen({ navigation, route }) {
   const [location, setLocation] = useState(null);
   const [loading, setLoading] = useState(false);
   const [locLoading, setLocLoading] = useState(true);
+
+  const isDark = theme === 'dark';
 
   useEffect(() => {
     loadCategories();
@@ -72,13 +75,13 @@ export default function PostRequestScreen({ navigation, route }) {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Location needed', 'We need your location to find nearby providers.');
+        Alert.alert(t('location_needed'), t('location_permission'));
         return;
       }
       const loc = await Location.getCurrentPositionAsync({});
       setLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
     } catch (err) {
-      Alert.alert('Error', 'Could not get your location');
+      Alert.alert(t('error'), t('location_error'));
     } finally {
       setLocLoading(false);
     }
@@ -102,49 +105,47 @@ export default function PostRequestScreen({ navigation, route }) {
 
   async function handleSubmit() {
     if (!selectedCat) {
-      Alert.alert('Select Category', 'Please select a service category');
+      Alert.alert(t('error'), t('select_category_error'));
       return;
     }
     
-    // Make sure subcategory is selected
     if (!selectedSubcat) {
-      Alert.alert('Select Service', 'Please select a specific service type');
+      Alert.alert(t('error'), t('select_service_error'));
       return;
     }
     
     if (descriptionError) {
-      Alert.alert('Invalid Description', descriptionError);
+      Alert.alert(t('error'), descriptionError);
       return;
     }
     
     if (!description.trim()) {
-      Alert.alert('Add Description', 'Please describe what you need');
+      Alert.alert(t('error'), t('description_required'));
       return;
     }
     
     if (!location) {
-      Alert.alert('Location Required', 'We need your location to match providers');
+      Alert.alert(t('error'), t('location_required'));
       return;
     }
 
     setLoading(true);
     try {
-      // FIXED: Now sending subcategory_id to backend
       const data = await requestAPI.create({
         category_id: selectedCat.id,
-        subcategory_id: selectedSubcat.id,  // ← ADDED: This ensures correct matching
+        subcategory_id: selectedSubcat.id,
         description: description.trim(),
         latitude: location.latitude,
         longitude: location.longitude,
       });
 
       Alert.alert(
-        'Request Posted! 🎉',
-        `${data.nearbyProvidersNotified} provider(s) have been notified near you!`,
-        [{ text: 'View My Requests', onPress: () => navigation.navigate('MyRequests') }]
+        t('success'),
+        `${data.nearbyProvidersNotified} ${t('providers_notified')}`,
+        [{ text: t('view_requests'), onPress: () => navigation.navigate('MyRequests') }]
       );
     } catch (err) {
-      Alert.alert('Error', err.message);
+      Alert.alert(t('error'), err.message);
     } finally {
       setLoading(false);
     }
@@ -153,19 +154,19 @@ export default function PostRequestScreen({ navigation, route }) {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: BRAND.white }]}>
       <ScrollView contentContainerStyle={styles.inner}>
-        <Text style={[styles.title, { color: BRAND.text }]}>Post a Request 📋</Text>
-        <Text style={[styles.subtitle, { color: BRAND.textLight }]}>Tell us what you need help with</Text>
+        <Text style={[styles.title, { color: BRAND.text }]}>{t('post_request')} 📋</Text>
+        <Text style={[styles.subtitle, { color: BRAND.textLight }]}>{t('tell_us')}</Text>
 
         {selectedCat && (
           <View style={[styles.selectedBox, { backgroundColor: BRAND.primaryLight }]}>
-            <Text style={[styles.selectedLabel, { color: BRAND.primary }]}>Selected Service:</Text>
+            <Text style={[styles.selectedLabel, { color: BRAND.primary }]}>{t('selected_service')}:</Text>
             <Text style={[styles.selectedValue, { color: BRAND.primary }]}>
               {selectedSubcat ? `${selectedCat.name} → ${selectedSubcat.name}` : selectedCat.name}
             </Text>
           </View>
         )}
 
-        <Text style={[styles.label, { color: BRAND.text }]}>Service Category *</Text>
+        <Text style={[styles.label, { color: BRAND.text }]}>{t('service_category')} *</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catScroll}>
           {categories.map(cat => (
             <TouchableOpacity
@@ -184,26 +185,10 @@ export default function PostRequestScreen({ navigation, route }) {
           ))}
         </ScrollView>
 
-        {/* Subcategory Selection - Only shown when category is selected */}
-        {selectedCat && (
-          <>
-            <Text style={[styles.label, { color: BRAND.text }]}>Select Specific Service *</Text>
-            <Text style={[styles.hint, { color: BRAND.textLight }]}>
-              Choose the exact service you need
-            </Text>
-            {/* This will need subcategories from API - but coming from HomeScreen */}
-            {!selectedSubcat && (
-              <Text style={[styles.warning, { color: BRAND.error }]}>
-                ⚠️ Please select a specific service type
-              </Text>
-            )}
-          </>
-        )}
-
-        <Text style={[styles.label, { color: BRAND.text }]}>Describe Your Problem *</Text>
+        <Text style={[styles.label, { color: BRAND.text }]}>{t('describe_problem')} *</Text>
         <TextInput
           style={[styles.textarea, descriptionError && styles.textareaError]}
-          placeholder="e.g. My kitchen pipe is leaking near the sink. Need urgent repair. (min 10 characters)"
+          placeholder={t('description_placeholder')}
           placeholderTextColor={BRAND.textLight}
           multiline
           numberOfLines={4}
@@ -213,27 +198,27 @@ export default function PostRequestScreen({ navigation, route }) {
         />
         {descriptionError && <Text style={[styles.errorText, { color: BRAND.error }]}>{descriptionError}</Text>}
 
-        <Text style={[styles.label, { color: BRAND.text }]}>Add a Photo (Optional)</Text>
+        <Text style={[styles.label, { color: BRAND.text }]}>{t('add_photo')}</Text>
         <TouchableOpacity style={[styles.photoBtn, { borderColor: BRAND.textLight }]} onPress={pickPhoto}>
           <Text style={[styles.photoBtnText, { color: BRAND.textLight }]}>
-            {photoUri ? '✅ Photo Selected' : '📷 Choose Photo'}
+            {photoUri ? '✅ ' + t('photo_selected') : '📷 ' + t('choose_photo')}
           </Text>
         </TouchableOpacity>
 
         <View style={styles.locationRow}>
-          <Text style={[styles.label, { color: BRAND.text }]}>Your Location</Text>
+          <Text style={[styles.label, { color: BRAND.text }]}>{t('your_location')}</Text>
           {locLoading
             ? <ActivityIndicator size="small" color={BRAND.primary} />
             : <Text style={[styles.locationStatus, { color: BRAND.success }]}>
-                {location ? '✅ Location detected' : '❌ Location not available'}
+                {location ? '✅ ' + t('location_detected') : '❌ ' + t('location_unavailable')}
               </Text>
           }
         </View>
 
         <View style={[styles.feeBox, { backgroundColor: '#FFF8E1', borderLeftColor: BRAND.secondary }]}>
-          <Text style={[styles.feeTitle, { color: '#92400E' }]}>💳 Fee Information</Text>
+          <Text style={[styles.feeTitle, { color: '#92400E' }]}>💳 {t('fee_info')}</Text>
           <Text style={[styles.feeText, { color: '#92400E' }]}>
-            After a provider accepts your request, you will pay a 100 ETB commitment fee to unlock their contact details.
+            {t('fee_description')}
           </Text>
         </View>
 
@@ -242,7 +227,7 @@ export default function PostRequestScreen({ navigation, route }) {
           onPress={handleSubmit}
           disabled={loading}
         >
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Post Request</Text>}
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{t('post_button')}</Text>}
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -255,8 +240,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, fontWeight: 'bold', marginBottom: 4 },
   subtitle: { fontSize: 14, marginBottom: 4 },
   label: { fontSize: 14, fontWeight: '600' },
-  hint: { fontSize: 12, marginBottom: 8 },
-  warning: { fontSize: 12, marginBottom: 8 },
   errorText: { fontSize: 12, marginTop: -8, marginBottom: 4 },
   selectedBox: { borderRadius: 12, padding: 12, marginBottom: 8 },
   selectedLabel: { fontSize: 12, marginBottom: 4 },

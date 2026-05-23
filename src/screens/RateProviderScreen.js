@@ -1,6 +1,6 @@
 // =============================================
 //  src/screens/RateProviderScreen.js
-//  Service Seeker rates provider after job completion
+//  WITH FULL AMHARIC SUPPORT
 // =============================================
 
 import React, { useState } from 'react';
@@ -33,7 +33,7 @@ export default function RateProviderScreen({ navigation, route }) {
 
   const handleSubmit = async () => {
     if (rating === 0) {
-      Alert.alert('Rating Required', 'Please select a rating (1-5 stars)');
+      Alert.alert(t('error'), t('rating_required'));
       return;
     }
 
@@ -47,12 +47,12 @@ export default function RateProviderScreen({ navigation, route }) {
       });
 
       Alert.alert(
-        'Thank You!',
-        'Your rating has been submitted successfully.',
-        [{ text: 'OK', onPress: () => navigation.navigate('MyRequests') }]
+        t('thank_you'),
+        t('rating_submitted'),
+        [{ text: t('ok'), onPress: () => navigation.navigate('MyRequests') }]
       );
     } catch (err) {
-      Alert.alert('Error', err.message);
+      Alert.alert(t('error'), err.message);
     } finally {
       setLoading(false);
     }
@@ -83,10 +83,10 @@ export default function RateProviderScreen({ navigation, route }) {
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#F9FAFB' }]}>
       <View style={[styles.header, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={[styles.backBtn, { color: BRAND.primary }]}>← Back</Text>
+          <Text style={[styles.backBtn, { color: BRAND.primary }]}>← {t('back')}</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: isDark ? '#FFF' : BRAND.text }]}>
-          Rate Provider
+          {t('rate_provider')}
         </Text>
         <View style={{ width: 40 }} />
       </View>
@@ -95,12 +95,12 @@ export default function RateProviderScreen({ navigation, route }) {
         <View style={styles.providerInfo}>
           <Text style={styles.providerIcon}>👤</Text>
           <Text style={[styles.providerName, { color: isDark ? '#FFF' : BRAND.text }]}>
-            {providerName || 'Service Provider'}
+            {providerName || t('service_provider')}
           </Text>
         </View>
 
         <Text style={[styles.question, { color: isDark ? '#FFF' : BRAND.text }]}>
-          How was your experience?
+          {t('how_was_experience')}
         </Text>
 
         <View style={styles.starsContainer}>
@@ -108,11 +108,11 @@ export default function RateProviderScreen({ navigation, route }) {
         </View>
 
         <Text style={[styles.ratingLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>
-          {rating === 0 ? 'Tap a star to rate' : `You rated ${rating} out of 5 stars`}
+          {rating === 0 ? t('tap_to_rate') : `${t('you_rated')} ${rating} ${t('out_of_5')}`}
         </Text>
 
         <Text style={[styles.commentLabel, { color: isDark ? '#FFF' : BRAND.text }]}>
-          Your Review (Optional)
+          {t('your_review')} ({t('optional')})
         </Text>
         <TextInput
           style={[
@@ -123,7 +123,7 @@ export default function RateProviderScreen({ navigation, route }) {
               color: isDark ? '#FFF' : BRAND.text
             }
           ]}
-          placeholder="Share your experience with this provider..."
+          placeholder={t('review_placeholder')}
           placeholderTextColor={isDark ? '#888' : BRAND.textLight}
           multiline
           numberOfLines={4}
@@ -140,7 +140,7 @@ export default function RateProviderScreen({ navigation, route }) {
           {loading ? (
             <ActivityIndicator color="#fff" size="small" />
           ) : (
-            <Text style={styles.submitBtnText}>Submit Rating</Text>
+            <Text style={styles.submitBtnText}>{t('submit_rating')}</Text>
           )}
         </TouchableOpacity>
 
@@ -148,7 +148,7 @@ export default function RateProviderScreen({ navigation, route }) {
           style={styles.skipBtn}
           onPress={() => navigation.navigate('MyRequests')}
         >
-          <Text style={[styles.skipBtnText, { color: BRAND.textLight }]}>Skip for now</Text>
+          <Text style={[styles.skipBtnText, { color: BRAND.textLight }]}>{t('skip')}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

@@ -1,6 +1,6 @@
 // =============================================
 //  src/screens/ProviderHomeScreen.js
-//  BRAND COLORS: Ethiopian Green (#2E7D32) + Gold (#F9A825)
+//  WITH FULL AMHARIC SUPPORT
 // =============================================
 
 import React, { useState, useCallback } from 'react';
@@ -13,17 +13,15 @@ import { useFocusEffect } from '@react-navigation/native';
 import { providerAPI, requestAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
+import * as Location from 'expo-location';
 
 const BRAND = {
   primary: '#2E7D32',
-  primaryDark: '#1B5E20',
   primaryLight: '#E8F5E9',
   secondary: '#F9A825',
-  secondaryLight: '#FFF8E1',
   text: '#374151',
   textLight: '#6B7280',
   white: '#FFFFFF',
-  dark: '#1F2937',
   error: '#DC2626',
   success: '#10B981',
 };
@@ -36,6 +34,8 @@ export default function ProviderHomeScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
   const [location, setLocation] = useState(null);
+
+  const isDark = theme === 'dark';
 
   useFocusEffect(
     useCallback(() => {
@@ -74,7 +74,7 @@ export default function ProviderHomeScreen({ navigation }) {
 
   async function toggleOnlineStatus() {
     if (!location) {
-      Alert.alert('Location Required', 'Please enable GPS to go online');
+      Alert.alert(t('location_required'), t('enable_gps'));
       return;
     }
     
@@ -85,15 +85,13 @@ export default function ProviderHomeScreen({ navigation }) {
         longitude: location.longitude
       });
       setIsOnline(data.is_online);
-      Alert.alert('Status Updated', data.message);
+      Alert.alert(t('status_updated'), data.message);
     } catch (err) {
-      Alert.alert('Error', err.message);
+      Alert.alert(t('error'), err.message);
     } finally {
       setToggling(false);
     }
   }
-
-  const isDark = theme === 'dark';
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#F9FAFB' }]}>
@@ -101,26 +99,24 @@ export default function ProviderHomeScreen({ navigation }) {
         contentContainerStyle={styles.inner}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={loadStats} />}
       >
-        {/* Welcome Header */}
         <View style={styles.welcomeSection}>
           <Text style={[styles.welcomeText, { color: isDark ? '#FFF' : BRAND.text }]}>
-            Welcome back, 👋
+            {t('welcome_back')}, 👋
           </Text>
           <Text style={[styles.providerName, { color: BRAND.primary }]}>
-            {user?.name?.split(' ')[0] || 'Provider'}
+            {user?.name?.split(' ')[0] || t('provider')}
           </Text>
           <Text style={[styles.roleBadge, { backgroundColor: BRAND.primaryLight, color: BRAND.primary }]}>
-            👷 Service Provider
+            👷 {t('provider')}
           </Text>
         </View>
 
-        {/* Online Status Card */}
         <View style={[styles.statusCard, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
           <View style={styles.statusRow}>
-            <Text style={[styles.statusLabel, { color: isDark ? '#FFF' : BRAND.text }]}>Current Status</Text>
+            <Text style={[styles.statusLabel, { color: isDark ? '#FFF' : BRAND.text }]}>{t('online_status')}</Text>
             <View style={[styles.statusDot, { backgroundColor: isOnline ? BRAND.success : BRAND.error }]} />
             <Text style={[styles.statusValue, { color: isOnline ? BRAND.success : BRAND.error }]}>
-              {isOnline ? '● ONLINE' : '● OFFLINE'}
+              {isOnline ? t('online') : t('offline')}
             </Text>
           </View>
           
@@ -133,47 +129,43 @@ export default function ProviderHomeScreen({ navigation }) {
               <ActivityIndicator color="#fff" size="small" />
             ) : (
               <Text style={styles.toggleBtnText}>
-                {isOnline ? 'Go Offline' : 'Go Online'}
+                {isOnline ? t('go_offline') : t('go_online')}
               </Text>
             )}
           </TouchableOpacity>
           
           <Text style={[styles.statusHint, { color: isDark ? '#AAA' : BRAND.textLight }]}>
-            {isOnline 
-              ? '✅ You are visible to seekers within 10km' 
-              : '⏸️ Go online to receive job offers'}
+            {isOnline ? t('online_hint') : t('offline_hint')}
           </Text>
         </View>
 
-        {/* Stats Grid */}
-        <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : BRAND.text }]}>Your Dashboard</Text>
+        <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : BRAND.text }]}>{t('your_dashboard')}</Text>
         <View style={styles.statsGrid}>
           <View style={[styles.statCard, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
             <Text style={styles.statIcon}>📋</Text>
             <Text style={[styles.statNumber, { color: BRAND.primary }]}>{stats.offered}</Text>
-            <Text style={[styles.statLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>Offered Jobs</Text>
+            <Text style={[styles.statLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('offered_jobs')}</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
             <Text style={styles.statIcon}>✅</Text>
             <Text style={[styles.statNumber, { color: BRAND.primary }]}>{stats.accepted}</Text>
-            <Text style={[styles.statLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>Accepted Jobs</Text>
+            <Text style={[styles.statLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('accepted_jobs')}</Text>
           </View>
           <View style={[styles.statCard, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
             <Text style={styles.statIcon}>🏁</Text>
             <Text style={[styles.statNumber, { color: BRAND.primary }]}>{stats.completed}</Text>
-            <Text style={[styles.statLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>Completed</Text>
+            <Text style={[styles.statLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('completed_jobs')}</Text>
           </View>
         </View>
 
-        {/* Quick Actions */}
-        <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : BRAND.text }]}>Quick Actions</Text>
+        <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : BRAND.text }]}>{t('quick_actions')}</Text>
         <View style={styles.actionGrid}>
           <TouchableOpacity 
             style={[styles.actionCard, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}
             onPress={() => navigation.navigate('OfferedJobs')}
           >
             <Text style={styles.actionIcon}>📋</Text>
-            <Text style={[styles.actionLabel, { color: isDark ? '#FFF' : BRAND.text }]}>View Offered Jobs</Text>
+            <Text style={[styles.actionLabel, { color: isDark ? '#FFF' : BRAND.text }]}>{t('view_offered_jobs')}</Text>
             <Text style={[styles.actionBadge, { backgroundColor: BRAND.primary, color: BRAND.white }]}>
               {stats.offered}
             </Text>
@@ -184,15 +176,14 @@ export default function ProviderHomeScreen({ navigation }) {
             onPress={() => navigation.navigate('AcceptedJobs')}
           >
             <Text style={styles.actionIcon}>✅</Text>
-            <Text style={[styles.actionLabel, { color: isDark ? '#FFF' : BRAND.text }]}>My Accepted Jobs</Text>
+            <Text style={[styles.actionLabel, { color: isDark ? '#FFF' : BRAND.text }]}>{t('my_accepted_jobs')}</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Tips Card */}
         <View style={[styles.tipsCard, { backgroundColor: BRAND.secondaryLight, borderLeftColor: BRAND.secondary }]}>
-          <Text style={[styles.tipsTitle, { color: '#92400E' }]}>💡 Pro Tip</Text>
+          <Text style={[styles.tipsTitle, { color: '#92400E' }]}>{t('pro_tip')}</Text>
           <Text style={[styles.tipsText, { color: '#92400E' }]}>
-            Stay online to receive job offers. The closer you are to the seeker's location, the higher your chance of getting matched!
+            {t('pro_tip_text')}
           </Text>
         </View>
       </ScrollView>
