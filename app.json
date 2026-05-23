@@ -1,12 +1,13 @@
 {
   "expo": {
     "name": "neighborhood-app",
-    "slug": "neighborhood-app",
+    "slug": "neighborhood-app-new",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "owner": "sisayy",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -21,22 +22,21 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.mahisisay.neighborhoodapp"
+      "package": "com.sisayy.neighborhoodapp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "extra": {
       "eas": {
-        "projectId": "bfa7a4f9-1c1c-4a1f-bc9b-6de4423d5812"
+        "projectId": "3a8e33e6-6f96-4af3-85d9-09ad138193dd"
       }
     },
     "runtimeVersion": {
       "policy": "appVersion"
     },
     "updates": {
-      "enabled": false,
-      "url": "https://u.expo.dev/bfa7a4f9-1c1c-4a1f-bc9b-6de4423d5812"
+      "enabled": false
     }
   }
 }

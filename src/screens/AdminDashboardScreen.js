@@ -1,13 +1,15 @@
 // =============================================
 //  src/screens/AdminDashboardScreen.js
 //  BRAND COLORS: Ethiopian Green (#2E7D32) + Gold (#F9A825)
+//  FIXED: Added reject provider functionality
+//  FIXED: Shows provider documents and experience
 // =============================================
 
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView,
   ScrollView, TouchableOpacity, Alert,
-  ActivityIndicator, RefreshControl, Image, Linking
+  ActivityIndicator, RefreshControl, Linking
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { adminAPI } from '../api/client';
@@ -32,13 +34,17 @@ export default function AdminDashboardScreen() {
   const { user } = useAuth();
   const { theme } = useSettings();
   const [stats, setStats] = useState({
-    total_seekers: 0, active_providers: 0, pending_providers: 0,
-    total_requests: 0, completed_jobs: 0, total_revenue_ETB: '0'
+    total_seekers: 0, 
+    active_providers: 0, 
+    pending_providers: 0,
+    total_requests: 0, 
+    completed_jobs: 0, 
+    total_revenue_ETB: '0'
   });
   const [pendingProviders, setPendingProviders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [verifyingId, setVerifyingId] = useState(null);
+  const [processingId, setProcessingId] = useState(null);
 
   useFocusEffect(
     useCallback(() => { loadData(); }, [])
@@ -53,6 +59,7 @@ export default function AdminDashboardScreen() {
       setStats(statsData.stats);
       setPendingProviders(pendingData.providers || []);
     } catch (err) {
+      console.log('Load data error:', err);
       Alert.alert('Error', err.message);
     } finally {
       setLoading(false);
@@ -61,7 +68,7 @@ export default function AdminDashboardScreen() {
   }
 
   async function handleVerify(providerId) {
-    setVerifyingId(providerId);
+    setProcessingId(providerId);
     try {
       await adminAPI.verifyProvider(providerId);
       Alert.alert('Success', 'Provider has been verified and activated');
@@ -69,8 +76,34 @@ export default function AdminDashboardScreen() {
     } catch (err) {
       Alert.alert('Error', err.message);
     } finally {
-      setVerifyingId(null);
+      setProcessingId(null);
     }
+  }
+
+  async function handleReject(providerId) {
+    Alert.alert(
+      'Reject Provider',
+      'Are you sure you want to reject this provider? They will not be able to offer services.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reject',
+          style: 'destructive',
+          onPress: async () => {
+            setProcessingId(providerId);
+            try {
+              await adminAPI.rejectProvider(providerId);
+              Alert.alert('Success', 'Provider has been rejected');
+              loadData();
+            } catch (err) {
+              Alert.alert('Error', err.message);
+            } finally {
+              setProcessingId(null);
+            }
+          }
+        }
+      ]
+    );
   }
 
   const isDark = theme === 'dark';
@@ -79,7 +112,15 @@ export default function AdminDashboardScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#F9FAFB' }]}>
       <ScrollView
         contentContainerStyle={styles.inner}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(); }} />}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={() => { 
+              setRefreshing(true); 
+              loadData(); 
+            }} 
+          />
+        }
       >
         {/* Admin Header */}
         <View style={styles.header}>
@@ -152,21 +193,29 @@ export default function AdminDashboardScreen() {
               )}
 
               <View style={styles.documentsRow}>
-                {provider.id_document_url && (
+                {provider.id_document_url ? (
                   <TouchableOpacity
                     style={[styles.docBtn, { backgroundColor: BRAND.primaryLight }]}
                     onPress={() => Linking.openURL(provider.id_document_url)}
                   >
                     <Text style={[styles.docBtnText, { color: BRAND.primary }]}>🪪 View ID</Text>
                   </TouchableOpacity>
+                ) : (
+                  <View style={[styles.docBtn, { backgroundColor: '#FEE2E2' }]}>
+                    <Text style={[styles.docBtnText, { color: BRAND.error }]}>❌ No ID</Text>
+                  </View>
                 )}
-                {provider.cert_url && (
+                {provider.cert_url ? (
                   <TouchableOpacity
                     style={[styles.docBtn, { backgroundColor: BRAND.secondaryLight }]}
                     onPress={() => Linking.openURL(provider.cert_url)}
                   >
                     <Text style={[styles.docBtnText, { color: BRAND.secondary }]}>📜 View Certificate</Text>
                   </TouchableOpacity>
+                ) : (
+                  <View style={[styles.docBtn, { backgroundColor: '#F3F4F6' }]}>
+                    <Text style={[styles.docBtnText, { color: BRAND.textLight }]}>📄 No Certificate</Text>
+                  </View>
                 )}
               </View>
 
@@ -174,9 +223,9 @@ export default function AdminDashboardScreen() {
                 <TouchableOpacity
                   style={[styles.verifyBtn, { backgroundColor: BRAND.primary }]}
                   onPress={() => handleVerify(provider.id)}
-                  disabled={verifyingId === provider.id}
+                  disabled={processingId === provider.id}
                 >
-                  {verifyingId === provider.id ? (
+                  {processingId === provider.id ? (
                     <ActivityIndicator size="small" color="#fff" />
                   ) : (
                     <Text style={styles.verifyBtnText}>✅ Verify</Text>
@@ -184,7 +233,8 @@ export default function AdminDashboardScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.rejectBtn, { backgroundColor: isDark ? '#2C2C2C' : '#F3F4F6' }]}
-                  onPress={() => Alert.alert('Reject', 'Reject functionality coming soon')}
+                  onPress={() => handleReject(provider.id)}
+                  disabled={processingId === provider.id}
                 >
                   <Text style={[styles.rejectBtnText, { color: BRAND.error }]}>❌ Reject</Text>
                 </TouchableOpacity>

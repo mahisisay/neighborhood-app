@@ -2,27 +2,42 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ master ]    # ← Changed from 'main' to 'master'
+    branches: [ master ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
       
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 18
           
-      - run: npm install
-      
-      - name: Install Expo tools
-        run: npm install -g expo-cli eas-cli
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          
+      - name: Install dependencies
+        run: npm install
         
-      - name: Build Android APK
+      - name: Install Expo CLI
+        run: npm install -g expo-cli
+        
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        
+      - name: Prebuild Android
+        run: npx expo prebuild --platform android --clean
+        
+      - name: Build APK
         run: |
-          npx expo prebuild --platform android
           cd android
           chmod +x gradlew
           ./gradlew assembleRelease

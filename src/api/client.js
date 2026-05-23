@@ -1,6 +1,7 @@
 // =============================================
 //  src/api/client.js — COMPLETE
 //  Includes all existing + admin + subcategories
+//  FIXED: Added rejectProvider and all admin methods
 // =============================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -79,16 +80,26 @@ export const reviewAPI = {
 
 // ── Admin ─────────────────────────────────────
 export const adminAPI = {
+  // Dashboard & Stats
   getStats:        ()    => apiCall('/api/admin/stats'),
   getPending:      ()    => apiCall('/api/admin/providers/pending'),
+  
+  // Provider Management
   verifyProvider:  (id)  => apiCall(`/api/admin/providers/${id}/verify`, 'PATCH'),
+  rejectProvider:  (id)  => apiCall(`/api/admin/providers/${id}/reject`, 'PATCH'),
+  
+  // User Management
+  getAllUsers:     ()    => apiCall('/api/admin/users'),
   suspendUser:     (id)  => apiCall(`/api/admin/users/${id}/suspend`,    'PATCH'),
   reactivateUser:  (id)  => apiCall(`/api/admin/users/${id}/reactivate`, 'PATCH'),
-  getAllUsers:     ()    => apiCall('/api/admin/users'),
-  getComplaints:   ()    => apiCall('/api/admin/complaints'),
-  resolveComplaint: (id) => apiCall(`/api/admin/complaints/${id}/resolve`, 'PUT'),
+  
+  // Payment Monitoring
+  getPayments:     ()    => apiCall('/api/admin/payments'),
+  
+  // Reports
+  generateReport:  (type) => apiCall(`/api/admin/reports/${type}`),
+  
+  // Reviews Moderation
   getAllReviews:   ()    => apiCall('/api/admin/reviews'),
   deleteReview:    (id)  => apiCall(`/api/admin/reviews/${id}`, 'DELETE'),
-  generateReport:  (type) => apiCall(`/api/admin/reports/${type}`),
-  getPayments:     ()    => apiCall('/api/admin/payments'),
 };
