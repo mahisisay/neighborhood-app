@@ -1,6 +1,6 @@
 // =============================================
 //  src/screens/LoginScreen.js
-//  FIXED: Clear expired token on mount
+//  FIXED: Clear expired token on mount + Flexible phone input
 // =============================================
 
 import React, { useState, useEffect } from 'react';
@@ -60,21 +60,80 @@ export default function LoginScreen({ navigation }) {
     updateLanguage(language === 'en' ? 'am' : 'en');
   };
 
+  // Helper function to format phone number
+  const formatPhoneNumber = (inputPhone) => {
+    if (!inputPhone) return '';
+    
+    // Remove all non-digit characters
+    let cleaned = inputPhone.replace(/\D/g, '');
+    
+    // If starts with 0, remove it
+    if (cleaned.startsWith('0')) {
+      cleaned = cleaned.substring(1);
+    }
+    
+    // If starts with 251, add + at beginning
+    if (cleaned.startsWith('251')) {
+      return '+' + cleaned;
+    }
+    
+    // If starts with 9 (Ethiopian mobile), add +251
+    if (cleaned.startsWith('9') && cleaned.length === 9) {
+      return '+251' + cleaned;
+    }
+    
+    // If already has + at beginning, return as is
+    if (inputPhone.startsWith('+')) {
+      return inputPhone;
+    }
+    
+    return '+' + cleaned;
+  };
+
   async function handleLogin() {
     if (!phone || !password) {
-      Alert.alert(t('missing_fields'), t('enter_phone_password'));
+      Alert.alert('Missing Fields', 'Please enter phone number and password');
       return;
     }
+    
     setLoading(true);
+    
+    // Format the phone number properly
+    const formattedPhone = formatPhoneNumber(phone);
+    console.log('Login attempt - Original phone:', phone);
+    console.log('Login attempt - Formatted phone:', formattedPhone);
+    
     try {
-      const data = await authAPI.login({ phone, password });
+      const data = await authAPI.login({ phone: formattedPhone, password });
+      
       if (data.message === 'pending') {
-        Alert.alert(t('account_pending'), t('pending_message'));
+        Alert.alert('Account Pending', 'Your account is pending admin verification.');
+        setLoading(false);
         return;
       }
+      
       await login(data.token, data.user);
+      
     } catch (err) {
-      Alert.alert(t('login_failed'), err.message);
+      console.log('Login error:', err.message);
+      
+      // Try alternative phone format if first attempt fails
+      if (!phone.includes('251') && !phone.includes('+')) {
+        try {
+          console.log('Trying alternative format...');
+          const alternativePhone = '+251' + phone.replace(/\D/g, '');
+          const retryData = await authAPI.login({ phone: alternativePhone, password });
+          
+          if (retryData.message !== 'pending') {
+            await login(retryData.token, retryData.user);
+            return;
+          }
+        } catch (retryErr) {
+          console.log('Alternative format also failed');
+        }
+      }
+      
+      Alert.alert('Login Failed', err.message || 'Invalid phone number or password');
     } finally {
       setLoading(false);
     }
@@ -84,7 +143,7 @@ export default function LoginScreen({ navigation }) {
     <SafeAreaView style={[styles.container, { backgroundColor: theme === 'dark' ? '#121212' : BRAND.white }]}>
       <View style={styles.headerRow}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={[styles.backBtnText, { color: BRAND.primary }]}>← {t('back')}</Text>
+          <Text style={[styles.backBtnText, { color: BRAND.primary }]}>← Back</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={toggleLanguage} style={styles.langBtn}>
           <Text style={styles.langBtnText}>{language === 'en' ? 'አማርኛ' : 'English'}</Text>
@@ -94,16 +153,16 @@ export default function LoginScreen({ navigation }) {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.inner}>
         <View style={styles.header}>
           <Text style={[styles.title, { color: theme === 'dark' ? '#FFF' : BRAND.text }]}>
-            {t('welcome_back')} 🏘️
+            Welcome Back 🏘️
           </Text>
           <Text style={[styles.subtitle, { color: theme === 'dark' ? '#AAA' : BRAND.textLight }]}>
-            {t('login_to_account')}
+            Login to your account
           </Text>
         </View>
         
         <View style={styles.form}>
           <Text style={[styles.label, { color: theme === 'dark' ? '#DDD' : BRAND.text }]}>
-            {t('phone_number')}
+            Phone Number
           </Text>
           <TextInput
             style={[
@@ -114,7 +173,7 @@ export default function LoginScreen({ navigation }) {
                 color: theme === 'dark' ? '#FFF' : BRAND.text
               }
             ]}
-            placeholder={t('phone_placeholder')}
+            placeholder="+251912345678 or 0912345678"
             placeholderTextColor={theme === 'dark' ? '#888' : '#9CA3AF'}
             keyboardType="phone-pad"
             value={phone}
@@ -122,7 +181,7 @@ export default function LoginScreen({ navigation }) {
           />
           
           <Text style={[styles.label, { color: theme === 'dark' ? '#DDD' : BRAND.text }]}>
-            {t('password')}
+            Password
           </Text>
           <View style={[
             styles.passwordContainer,
@@ -133,7 +192,7 @@ export default function LoginScreen({ navigation }) {
           ]}>
             <TextInput
               style={[styles.passwordInput, { color: theme === 'dark' ? '#FFF' : BRAND.text }]}
-              placeholder={t('password_placeholder')}
+              placeholder="Enter your password"
               placeholderTextColor={theme === 'dark' ? '#888' : '#9CA3AF'}
               secureTextEntry={!showPassword}
               value={password}
@@ -151,16 +210,16 @@ export default function LoginScreen({ navigation }) {
             onPress={handleLogin} 
             disabled={loading}
           >
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{t('login')}</Text>}
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Login</Text>}
           </TouchableOpacity>
           
           <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
-            <Text style={[styles.forgotText, { color: BRAND.primary }]}>{t('forgot_password')}</Text>
+            <Text style={[styles.forgotText, { color: BRAND.primary }]}>Forgot Password?</Text>
           </TouchableOpacity>
           
           <TouchableOpacity onPress={() => navigation.navigate('Register')}>
             <Text style={[styles.linkText, { color: theme === 'dark' ? '#AAA' : BRAND.textLight }]}>
-              {t('no_account')} <Text style={[styles.link, { color: BRAND.primary }]}>{t('register')}</Text>
+              Don't have an account? <Text style={[styles.link, { color: BRAND.primary }]}>Register</Text>
             </Text>
           </TouchableOpacity>
         </View>
