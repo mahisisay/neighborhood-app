@@ -1,6 +1,6 @@
 // =============================================
 //  src/screens/RegisterScreen.js
-//  FULL AMHARIC SUPPORT - All text uses t() function
+//  FIXED - Success message shows as popup alert
 // =============================================
 
 import React, { useState, useEffect } from 'react';
@@ -89,7 +89,7 @@ export default function RegisterScreen({ navigation }) {
       setExpandedCategories(categories);
     } catch (err) {
       console.log('Error loading subcategories:', err);
-      Alert.alert(t('error'), t('could_not_load_categories'));
+      Alert.alert('Error', 'Could not load services. Please check your connection.');
       setSubcategories([]);
     } finally {
       setLoadingServices(false);
@@ -185,8 +185,10 @@ export default function RegisterScreen({ navigation }) {
   }
 
   async function handleRegister() {
+    console.log('handleRegister called!');
+    
     if (role === 'provider' && selectedServices.length === 0) {
-      Alert.alert(t('error'), t('select_at_least_one_service'));
+      Alert.alert('Error', 'Please select at least one service you offer');
       return;
     }
 
@@ -204,7 +206,7 @@ export default function RegisterScreen({ navigation }) {
     
     if (!isFormValid(errors)) {
       const firstError = Object.values(errors)[0];
-      Alert.alert(t('error'), firstError);
+      Alert.alert('Validation Error', firstError);
       return;
     }
 
@@ -216,20 +218,35 @@ export default function RegisterScreen({ navigation }) {
       
       if (role === 'provider') {
         await uploadDocuments();
+        // ✅ SUCCESS MESSAGE - POPUP ALERT
         Alert.alert(
-          t('registration_success'),
-          t('provider_pending_message'),
-          [{ text: t('ok'), onPress: () => navigation.navigate('Login') }]
+          '✅ Registration Successful!',
+          'Your account has been created and is pending admin verification.\n\nYou will be notified once your account is approved.',
+          [
+            { 
+              text: 'Go to Login', 
+              onPress: () => navigation.navigate('Login'),
+              style: 'default'
+            }
+          ]
         );
       } else {
+        // ✅ SUCCESS MESSAGE - POPUP ALERT for Seeker
         Alert.alert(
-          t('registration_success'),
-          t('seeker_success_message'),
-          [{ text: t('login_now'), onPress: () => navigation.navigate('Login') }]
+          '✅ Registration Successful!',
+          'Your account has been created successfully.\n\nYou can now login to start requesting services.',
+          [
+            { 
+              text: 'Login Now', 
+              onPress: () => navigation.navigate('Login'),
+              style: 'default'
+            }
+          ]
         );
       }
     } catch (err) {
-      Alert.alert(t('registration_failed'), err.message);
+      console.error('Registration error:', err);
+      Alert.alert('❌ Registration Failed', err.message);
     } finally {
       setLoading(false);
     }
@@ -248,7 +265,7 @@ export default function RegisterScreen({ navigation }) {
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#F9FAFB' }]}>
       <View style={styles.headerRow}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={[styles.backBtnText, { color: BRAND.primary }]}>← {t('back')}</Text>
+          <Text style={[styles.backBtnText, { color: BRAND.primary }]}>← Back</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={toggleLanguage} style={styles.langBtn}>
           <Text style={styles.langBtnText}>{language === 'en' ? 'አማርኛ' : 'English'}</Text>
@@ -256,46 +273,50 @@ export default function RegisterScreen({ navigation }) {
       </View>
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.inner}>
+        <ScrollView 
+          contentContainerStyle={styles.inner}
+          showsVerticalScrollIndicator={true}
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={styles.header}>
-            <Text style={[styles.title, { color: isDark ? '#FFF' : BRAND.text }]}>{t('create_account')} 🏘️</Text>
-            <Text style={[styles.subtitle, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('join_us')}</Text>
+            <Text style={[styles.title, { color: isDark ? '#FFF' : BRAND.text }]}>Create Account 🏘️</Text>
+            <Text style={[styles.subtitle, { color: isDark ? '#AAA' : BRAND.textLight }]}>Join our community</Text>
           </View>
 
-          <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>{t('i_am_a')}</Text>
+          <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>I am a</Text>
           <View style={styles.roleRow}>
             <TouchableOpacity
               style={[styles.roleBtn, role === 'seeker' && styles.roleBtnActive]}
               onPress={() => setRole('seeker')}
             >
               <Text style={styles.roleIcon}>🔍</Text>
-              <Text style={[styles.roleText, role === 'seeker' && styles.roleTextActive]}>{t('seeker')}</Text>
-              <Text style={[styles.roleDesc, { color: isDark ? '#888' : BRAND.textLight }]}>{t('seeker_desc')}</Text>
+              <Text style={[styles.roleText, role === 'seeker' && styles.roleTextActive]}>Service Seeker</Text>
+              <Text style={[styles.roleDesc, { color: isDark ? '#888' : BRAND.textLight }]}>Need a service done</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.roleBtn, role === 'provider' && styles.roleBtnActive]}
               onPress={() => setRole('provider')}
             >
               <Text style={styles.roleIcon}>👷</Text>
-              <Text style={[styles.roleText, role === 'provider' && styles.roleTextActive]}>{t('provider')}</Text>
-              <Text style={[styles.roleDesc, { color: isDark ? '#888' : BRAND.textLight }]}>{t('provider_desc')}</Text>
+              <Text style={[styles.roleText, role === 'provider' && styles.roleTextActive]}>Service Provider</Text>
+              <Text style={[styles.roleDesc, { color: isDark ? '#888' : BRAND.textLight }]}>Offer your skills</Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>{t('full_name')}</Text>
+          <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>Full Name</Text>
           <TextInput
             style={[styles.input, validationErrors.name && styles.inputError]}
-            placeholder={t('name_placeholder')}
+            placeholder="Your full name"
             placeholderTextColor={isDark ? '#888' : BRAND.textLight}
             value={name}
             onChangeText={setName}
           />
           {validationErrors.name && <Text style={[styles.errorText, { color: BRAND.error }]}>{validationErrors.name}</Text>}
 
-          <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>{t('phone_number')}</Text>
+          <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>Phone Number</Text>
           <TextInput
             style={[styles.input, validationErrors.phone && styles.inputError]}
-            placeholder={t('phone_placeholder')}
+            placeholder="+251912345678"
             placeholderTextColor={isDark ? '#888' : BRAND.textLight}
             keyboardType="phone-pad"
             value={phone}
@@ -303,10 +324,10 @@ export default function RegisterScreen({ navigation }) {
           />
           {validationErrors.phone && <Text style={[styles.errorText, { color: BRAND.error }]}>{validationErrors.phone}</Text>}
 
-          <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>{t('password')}</Text>
+          <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>Password</Text>
           <TextInput
             style={[styles.input, validationErrors.password && styles.inputError]}
-            placeholder={t('password_placeholder')}
+            placeholder="At least 6 characters with 1 number"
             placeholderTextColor={isDark ? '#888' : BRAND.textLight}
             secureTextEntry
             value={password}
@@ -318,14 +339,14 @@ export default function RegisterScreen({ navigation }) {
             <>
               <View style={styles.divider} />
               
-              <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : BRAND.text }]}>{t('select_services')}</Text>
-              <Text style={[styles.sectionDesc, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('select_services_desc')}</Text>
+              <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : BRAND.text }]}>Select Your Services</Text>
+              <Text style={[styles.sectionDesc, { color: isDark ? '#AAA' : BRAND.textLight }]}>Choose all services you offer</Text>
 
               <View style={[styles.searchContainer, { backgroundColor: isDark ? '#2C2C2C' : '#F3F4F6' }]}>
                 <Text style={styles.searchIcon}>🔍</Text>
                 <TextInput
                   style={[styles.searchInput, { color: isDark ? '#FFF' : BRAND.text }]}
-                  placeholder={t('search_services')}
+                  placeholder="Search services..."
                   placeholderTextColor={isDark ? '#888' : BRAND.textLight}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
@@ -340,7 +361,7 @@ export default function RegisterScreen({ navigation }) {
               {selectedServices.length > 0 && (
                 <View style={[styles.selectedBadge, { backgroundColor: BRAND.primaryLight }]}>
                   <Text style={[styles.selectedBadgeText, { color: BRAND.primary }]}>
-                    ✅ {selectedServices.length} {t('services_selected')}
+                    ✅ {selectedServices.length} service(s) selected
                   </Text>
                 </View>
               )}
@@ -349,9 +370,9 @@ export default function RegisterScreen({ navigation }) {
                 <ActivityIndicator size="large" color={BRAND.primary} style={{ marginVertical: 20 }} />
               ) : subcategories.length === 0 ? (
                 <View style={{ padding: 20, alignItems: 'center' }}>
-                  <Text style={{ color: BRAND.error }}>⚠️ {t('no_services')}</Text>
+                  <Text style={{ color: BRAND.error }}>⚠️ No services loaded</Text>
                   <TouchableOpacity onPress={loadSubcategories} style={{ marginTop: 10 }}>
-                    <Text style={{ color: BRAND.primary }}>{t('retry')}</Text>
+                    <Text style={{ color: BRAND.primary }}>Retry</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -423,10 +444,10 @@ export default function RegisterScreen({ navigation }) {
               )}
               
               <View style={styles.divider} />
-              <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : BRAND.text }]}>{t('verification_docs')}</Text>
-              <Text style={[styles.sectionDesc, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('admin_review_note')}</Text>
+              <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : BRAND.text }]}>Verification Documents</Text>
+              <Text style={[styles.sectionDesc, { color: isDark ? '#AAA' : BRAND.textLight }]}>These will be reviewed by admin</Text>
 
-              <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>{t('national_id')} *</Text>
+              <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>National ID Photo *</Text>
               <TouchableOpacity
                 style={[styles.uploadBtn, idPhoto && styles.uploadBtnDone]}
                 onPress={() => pickImage(setIdPhoto)}
@@ -434,14 +455,14 @@ export default function RegisterScreen({ navigation }) {
                 {idPhoto ? (
                   <View style={styles.uploadedRow}>
                     <Image source={{ uri: idPhoto.uri }} style={styles.thumbImage} />
-                    <Text style={[styles.uploadedText, { color: BRAND.success }]}>{t('id_selected')}</Text>
+                    <Text style={[styles.uploadedText, { color: BRAND.success }]}>ID Photo Selected</Text>
                   </View>
                 ) : (
-                  <Text style={[styles.uploadBtnText, { color: isDark ? '#AAA' : BRAND.textLight }]}>📷 {t('upload_id_btn')}</Text>
+                  <Text style={[styles.uploadBtnText, { color: isDark ? '#AAA' : BRAND.textLight }]}>📷 Upload National ID</Text>
                 )}
               </TouchableOpacity>
 
-              <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>{t('certificate')} ({t('optional')})</Text>
+              <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>Certificate (Optional)</Text>
               <TouchableOpacity
                 style={[styles.uploadBtn, certificate && styles.uploadBtnDone]}
                 onPress={() => pickImage(setCertificate)}
@@ -449,17 +470,17 @@ export default function RegisterScreen({ navigation }) {
                 {certificate ? (
                   <View style={styles.uploadedRow}>
                     <Image source={{ uri: certificate.uri }} style={styles.thumbImage} />
-                    <Text style={[styles.uploadedText, { color: BRAND.success }]}>{t('cert_selected')}</Text>
+                    <Text style={[styles.uploadedText, { color: BRAND.success }]}>Certificate Selected</Text>
                   </View>
                 ) : (
-                  <Text style={[styles.uploadBtnText, { color: isDark ? '#AAA' : BRAND.textLight }]}>📄 {t('upload_cert_btn')}</Text>
+                  <Text style={[styles.uploadBtnText, { color: isDark ? '#AAA' : BRAND.textLight }]}>📄 Upload Certificate</Text>
                 )}
               </TouchableOpacity>
 
-              <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>{t('experience_desc')}</Text>
+              <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>Experience Description</Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
-                placeholder={t('experience_placeholder')}
+                placeholder="Tell us about your experience..."
                 placeholderTextColor={isDark ? '#888' : BRAND.textLight}
                 multiline
                 numberOfLines={4}
@@ -470,23 +491,24 @@ export default function RegisterScreen({ navigation }) {
 
               <View style={[styles.noteBox, { backgroundColor: isDark ? '#5C1E1E' : '#FEF3C7', borderLeftColor: '#F59E0B' }]}>
                 <Text style={[styles.noteText, { color: isDark ? '#FFB3B3' : '#92400E' }]}>
-                  {t('verification_note')}
+                  Your documents will be reviewed. You will be notified once verified.
                 </Text>
               </View>
             </>
           )}
 
+          {/* REGISTER BUTTON */}
           <TouchableOpacity
             style={[styles.btn, loading && { opacity: 0.7 }]}
-            onPress={handleRegister}
+            onPress={() => handleRegister()}
             disabled={loading}
           >
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{t('create_account')}</Text>}
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Create Account</Text>}
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => navigation.navigate('Login')}>
             <Text style={[styles.linkText, { color: isDark ? '#AAA' : BRAND.textLight }]}>
-              {t('have_account')} <Text style={[styles.link, { color: BRAND.primary }]}>{t('login')}</Text>
+              Already have an account? <Text style={[styles.link, { color: BRAND.primary }]}>Login</Text>
             </Text>
           </TouchableOpacity>
         </ScrollView>
@@ -509,7 +531,7 @@ const styles = StyleSheet.create({
   backBtnText: { fontSize: 16, fontWeight: '600' },
   langBtn: { backgroundColor: '#E5E7EB', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
   langBtnText: { fontSize: 14, fontWeight: '600', color: '#111' },
-  inner: { paddingHorizontal: 24, paddingVertical: 32, gap: 12 },
+  inner: { paddingHorizontal: 24, paddingVertical: 32, gap: 12, paddingBottom: 40 },
   header: { marginBottom: 8 },
   title: { fontSize: 28, fontWeight: 'bold', marginBottom: 6 },
   subtitle: { fontSize: 15 },

@@ -1,7 +1,6 @@
 // =============================================
-//  src/api/client.js — COMPLETE
-//  Checks token expiry before every API call
-//  ADDED: Forgot Password & Reset Password
+//  src/api/client.js — COMPLETE FIXED
+//  Fixed: Registration doesn't require token check
 // =============================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -12,7 +11,7 @@ export const BASE_URL = 'https://neighborhood-backend-production.up.railway.app'
 // Function to check if token is expired
 async function isTokenExpired() {
   const token = await AsyncStorage.getItem('token');
-  if (!token) return true;
+  if (!token) return false; // No token = not expired (for registration/login)
   
   try {
     const base64Url = token.split('.')[1];
@@ -33,14 +32,15 @@ async function isTokenExpired() {
     
     return isExpired;
   } catch (e) {
-    return true;
+    return false;
   }
 }
 
 // Helper function — makes API calls with auth token automatically
-async function apiCall(endpoint, method = 'GET', body = null) {
-  // Check token expiry before making request
-  if (await isTokenExpired()) {
+// Added skipTokenCheck parameter for public endpoints (register, login)
+async function apiCall(endpoint, method = 'GET', body = null, skipTokenCheck = false) {
+  // Skip token expiry check for public endpoints like register, login
+  if (!skipTokenCheck && await isTokenExpired()) {
     throw new Error('Session expired. Please login again.');
   }
   
@@ -78,12 +78,13 @@ export async function loginForUpload(phone, password) {
 }
 
 // ── Auth ──────────────────────────────────────
+// register and login skip token check (public endpoints)
 export const authAPI = {
-  register: (body) => apiCall('/api/auth/register', 'POST', body),
-  login:    (body) => apiCall('/api/auth/login',    'POST', body),
+  register: (body) => apiCall('/api/auth/register', 'POST', body, true),
+  login:    (body) => apiCall('/api/auth/login',    'POST', body, true),
   getMe:    ()     => apiCall('/api/auth/me'),
-  forgotPassword: (body) => apiCall('/api/auth/forgot-password', 'POST', body),
-  resetPassword:   (body) => apiCall('/api/auth/reset-password',   'POST', body),
+  forgotPassword: (body) => apiCall('/api/auth/forgot-password', 'POST', body, true),
+  resetPassword:   (body) => apiCall('/api/auth/reset-password',   'POST', body, true),
 };
 
 // ── Requests ─────────────────────────────────

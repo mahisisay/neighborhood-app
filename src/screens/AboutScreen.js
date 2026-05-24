@@ -1,5 +1,6 @@
 // =============================================
 //  src/screens/AboutScreen.js
+//  COMPLETE FIXED VERSION - No emojis, no text node errors
 //  WITH FULL AMHARIC SUPPORT
 // =============================================
 
@@ -28,92 +29,144 @@ export default function AboutScreen({ navigation }) {
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#F9FAFB' }]}>
       <View style={[styles.header, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white, borderBottomColor: isDark ? '#333' : '#E5E7EB' }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={[styles.backBtnText, { color: BRAND.primary }]}>← {t('back')}</Text>
+          <Text style={[styles.backBtnText, { color: BRAND.primary }]}>Back</Text>
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: isDark ? '#FFF' : BRAND.text }]}>{t('about')}</Text>
+        <Text style={[styles.headerTitle, { color: isDark ? '#FFF' : BRAND.text }]}>
+          {t('about') || 'About'}
+        </Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.inner}>
         <View style={styles.logoSection}>
-          <Text style={styles.logoIcon}>🏘️</Text>
+          <Text style={styles.logoIcon}>NF</Text>
           <Text style={[styles.appName, { color: BRAND.primary }]}>Neighborhood</Text>
-          <Text style={[styles.appNameFull, { color: isDark ? '#FFF' : BRAND.text }]}>{t('app_name')}</Text>
-          <Text style={[styles.version, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('version')} 1.0.0</Text>
-        </View>
-
-        <View style={[styles.card, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
-          <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : BRAND.text }]}>📖 {t('app_description')}</Text>
-          <Text style={[styles.cardText, { color: isDark ? '#CCC' : BRAND.text }]}>
-            {t('about_text')}
+          <Text style={[styles.appNameFull, { color: isDark ? '#FFF' : BRAND.text }]}>
+            {t('app_name') || 'Neighborhood Finder'}
+          </Text>
+          <Text style={[styles.version, { color: isDark ? '#AAA' : BRAND.textLight }]}>
+            {t('version') || 'Version'} 1.0.0
           </Text>
         </View>
 
         <View style={[styles.card, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
-          <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : BRAND.text }]}>👨‍💻 {t('developer_info')}</Text>
+          <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : BRAND.text }]}>
+            About the App
+          </Text>
+          <Text style={[styles.cardText, { color: isDark ? '#CCC' : BRAND.text }]}>
+            {t('about_text') || 'Neighborhood Finder connects local service providers with customers in your area. Find trusted professionals for home services, repairs, and more.'}
+          </Text>
+        </View>
+
+        <View style={[styles.card, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
+          <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : BRAND.text }]}>
+            Developer Information
+          </Text>
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('developer')}:</Text>
-            <Text style={[styles.infoValue, { color: isDark ? '#FFF' : BRAND.text }]}>Mahlat Sisay</Text>
+            <Text style={[styles.infoLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>
+              {t('developer') || 'Developer'}:
+            </Text>
+            <Text style={[styles.infoValue, { color: isDark ? '#FFF' : BRAND.text }]}>
+              Mahlat Sisay
+            </Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('university')}:</Text>
-            <Text style={[styles.infoValue, { color: isDark ? '#FFF' : BRAND.text }]}>University of Gondar</Text>
+            <Text style={[styles.infoLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>
+              {t('university') || 'University'}:
+            </Text>
+            <Text style={[styles.infoValue, { color: isDark ? '#FFF' : BRAND.text }]}>
+              University of Gondar
+            </Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('department')}:</Text>
-            <Text style={[styles.infoValue, { color: isDark ? '#FFF' : BRAND.text }]}>Information Systems</Text>
+            <Text style={[styles.infoLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>
+              {t('department') || 'Department'}:
+            </Text>
+            <Text style={[styles.infoValue, { color: isDark ? '#FFF' : BRAND.text }]}>
+              Information Systems
+            </Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('location')}:</Text>
-            <Text style={[styles.infoValue, { color: isDark ? '#FFF' : BRAND.text }]}>Gondar, Ethiopia</Text>
+            <Text style={[styles.infoLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>
+              {t('location') || 'Location'}:
+            </Text>
+            <Text style={[styles.infoValue, { color: isDark ? '#FFF' : BRAND.text }]}>
+              Gondar, Ethiopia
+            </Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={[styles.infoLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('year')}:</Text>
-            <Text style={[styles.infoValue, { color: isDark ? '#FFF' : BRAND.text }]}>2026</Text>
+            <Text style={[styles.infoLabel, { color: isDark ? '#AAA' : BRAND.textLight }]}>
+              {t('year') || 'Year'}:
+            </Text>
+            <Text style={[styles.infoValue, { color: isDark ? '#FFF' : BRAND.text }]}>
+              2026
+            </Text>
           </View>
         </View>
 
         <View style={[styles.card, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
-          <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : BRAND.text }]}>📞 {t('contact_us')}</Text>
-          <TouchableOpacity style={styles.contactRow} onPress={() => Linking.openURL('mailto:support@nsf.com')}>
-            <Text style={styles.contactIcon}>📧</Text>
-            <Text style={[styles.contactText, { color: BRAND.primary }]}>support@neighborhoodfinder.com</Text>
+          <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : BRAND.text }]}>
+            Contact Us
+          </Text>
+          <TouchableOpacity style={styles.contactRow} onPress={() => Linking.openURL('mailto:support@neighborhoodfinder.com')}>
+            <Text style={styles.contactIcon}>Email</Text>
+            <Text style={[styles.contactText, { color: BRAND.primary }]}>
+              support@neighborhoodfinder.com
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.contactRow} onPress={() => Linking.openURL('tel:+251912345678')}>
-            <Text style={styles.contactIcon}>📞</Text>
-            <Text style={[styles.contactText, { color: BRAND.primary }]}>+251-912-345-678</Text>
+            <Text style={styles.contactIcon}>Phone</Text>
+            <Text style={[styles.contactText, { color: BRAND.primary }]}>
+              +251-912-345-678
+            </Text>
           </TouchableOpacity>
         </View>
 
         <View style={[styles.card, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
-          <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : BRAND.text }]}>✨ {t('key_features')}</Text>
+          <Text style={[styles.cardTitle, { color: isDark ? '#FFF' : BRAND.text }]}>
+            Key Features
+          </Text>
           <View style={styles.featureRow}>
-            <Text style={styles.featureIcon}>📍</Text>
-            <Text style={[styles.featureText, { color: isDark ? '#CCC' : BRAND.text }]}>{t('feature_gps')}</Text>
+            <Text style={styles.featureIcon}>-</Text>
+            <Text style={[styles.featureText, { color: isDark ? '#CCC' : BRAND.text }]}>
+              {t('feature_gps') || 'GPS Location Tracking'}
+            </Text>
           </View>
           <View style={styles.featureRow}>
-            <Text style={styles.featureIcon}>✅</Text>
-            <Text style={[styles.featureText, { color: isDark ? '#CCC' : BRAND.text }]}>{t('feature_verified')}</Text>
+            <Text style={styles.featureIcon}>-</Text>
+            <Text style={[styles.featureText, { color: isDark ? '#CCC' : BRAND.text }]}>
+              {t('feature_verified') || 'Verified Service Providers'}
+            </Text>
           </View>
           <View style={styles.featureRow}>
-            <Text style={styles.featureIcon}>⭐</Text>
-            <Text style={[styles.featureText, { color: isDark ? '#CCC' : BRAND.text }]}>{t('feature_rating')}</Text>
+            <Text style={styles.featureIcon}>-</Text>
+            <Text style={[styles.featureText, { color: isDark ? '#CCC' : BRAND.text }]}>
+              {t('feature_rating') || 'Ratings and Reviews'}
+            </Text>
           </View>
           <View style={styles.featureRow}>
-            <Text style={styles.featureIcon}>💰</Text>
-            <Text style={[styles.featureText, { color: isDark ? '#CCC' : BRAND.text }]}>{t('feature_payment')}</Text>
+            <Text style={styles.featureIcon}>-</Text>
+            <Text style={[styles.featureText, { color: isDark ? '#CCC' : BRAND.text }]}>
+              {t('feature_payment') || 'Secure Payment System'}
+            </Text>
           </View>
           <View style={styles.featureRow}>
-            <Text style={styles.featureIcon}>🔄</Text>
-            <Text style={[styles.featureText, { color: isDark ? '#CCC' : BRAND.text }]}>{t('feature_roles')}</Text>
+            <Text style={styles.featureIcon}>-</Text>
+            <Text style={[styles.featureText, { color: isDark ? '#CCC' : BRAND.text }]}>
+              {t('feature_roles') || 'Multi-role Support'}
+            </Text>
           </View>
           <View style={styles.featureRow}>
-            <Text style={styles.featureIcon}>🌙</Text>
-            <Text style={[styles.featureText, { color: isDark ? '#CCC' : BRAND.text }]}>{t('feature_theme')}</Text>
+            <Text style={styles.featureIcon}>-</Text>
+            <Text style={[styles.featureText, { color: isDark ? '#CCC' : BRAND.text }]}>
+              {t('feature_theme') || 'Dark/Light Theme'}
+            </Text>
           </View>
           <View style={styles.featureRow}>
-            <Text style={styles.featureIcon}>📱</Text>
-            <Text style={[styles.featureText, { color: isDark ? '#CCC' : BRAND.text }]}>{t('feature_language')}</Text>
+            <Text style={styles.featureIcon}>-</Text>
+            <Text style={[styles.featureText, { color: isDark ? '#CCC' : BRAND.text }]}>
+              {t('feature_language') || 'Multi-language Support'}
+            </Text>
           </View>
         </View>
 
@@ -121,7 +174,7 @@ export default function AboutScreen({ navigation }) {
           style={[styles.okBtn, { backgroundColor: BRAND.primary }]}
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.okBtnText}>{t('ok')}</Text>
+          <Text style={styles.okBtnText}>{t('ok') || 'OK'}</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -143,7 +196,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 18, fontWeight: 'bold' },
   inner: { padding: 20, gap: 16 },
   logoSection: { alignItems: 'center', marginBottom: 8 },
-  logoIcon: { fontSize: 64, marginBottom: 8 },
+  logoIcon: { fontSize: 48, fontWeight: 'bold', marginBottom: 8, color: '#2E7D32' },
   appName: { fontSize: 20, fontWeight: 'bold' },
   appNameFull: { fontSize: 16, marginTop: 4 },
   version: { fontSize: 12, marginTop: 4 },
@@ -154,10 +207,10 @@ const styles = StyleSheet.create({
   infoLabel: { width: 100, fontSize: 13 },
   infoValue: { flex: 1, fontSize: 13, fontWeight: '500' },
   contactRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  contactIcon: { fontSize: 20, width: 32 },
-  contactText: { fontSize: 14, fontWeight: '500' },
+  contactIcon: { fontSize: 14, fontWeight: '600', width: 50 },
+  contactText: { fontSize: 14, fontWeight: '500', flex: 1 },
   featureRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  featureIcon: { fontSize: 18, width: 32 },
+  featureIcon: { fontSize: 14, fontWeight: 'bold', width: 20 },
   featureText: { flex: 1, fontSize: 13 },
   okBtn: { borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 8 },
   okBtnText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },

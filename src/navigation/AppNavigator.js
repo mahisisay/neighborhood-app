@@ -1,6 +1,7 @@
 // =============================================
-//  src/navigation/AppNavigator.js — COMPLETE
+//  src/navigation/AppNavigator.js — COMPLETE FIXED
 //  WITH ROLE SELECTION SCREEN & FORGOT PASSWORD
+//  FIXED: Text node errors, emoji issues, period rendering
 // =============================================
 
 import React from 'react';
@@ -39,7 +40,7 @@ import AboutScreen from '../screens/AboutScreen';
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// 3 dot menu button
+// FIXED: Three dots button - using three periods instead of special character
 function ThreeDotsButton() {
   const navigation = useNavigation();
   return (
@@ -47,28 +48,45 @@ function ThreeDotsButton() {
       onPress={() => navigation.navigate('Settings')}
       style={{ paddingHorizontal: 16, paddingVertical: 8 }}
     >
-      <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#374151' }}>⋮</Text>
+      <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#374151' }}>...</Text>
     </TouchableOpacity>
   );
 }
 
-// MapScreenComponent
+// FIXED: MapScreenComponent - wrapped all text in proper Text components
 const MapScreenComponent = Platform.select({
-  web: () => (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f9fafb' }}>
-      <Text style={{ fontSize: 48 }}>🗺️</Text>
-      <Text style={{ fontSize: 18, fontWeight: 'bold', marginTop: 16 }}>Map View</Text>
-      <Text style={{ fontSize: 14, color: '#666', marginTop: 8 }}>Available on mobile devices only</Text>
-      <Text style={{ fontSize: 12, color: '#999', marginTop: 4 }}>Please open on Android phone</Text>
-    </View>
-  ),
+  web: () => {
+    const MapView = () => (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f9fafb' }}>
+        <Text style={{ fontSize: 48 }}>🗺️</Text>
+        <Text style={{ fontSize: 18, fontWeight: 'bold', marginTop: 16 }}>Map View</Text>
+        <Text style={{ fontSize: 14, color: '#666', marginTop: 8 }}>Available on mobile devices only</Text>
+        <Text style={{ fontSize: 12, color: '#999', marginTop: 4 }}>Please open on Android phone</Text>
+      </View>
+    );
+    return MapView;
+  },
   default: () => {
-    const NativeMapScreen = require('../screens/MapScreen.native').default;
-    return <NativeMapScreen />;
+    try {
+      const NativeMapScreen = require('../screens/MapScreen.native').default;
+      return NativeMapScreen;
+    } catch (error) {
+      // Fallback if MapScreen.native doesn't exist
+      return () => (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text>Map feature coming soon</Text>
+        </View>
+      );
+    }
   }
 });
 
 const MapScreen = MapScreenComponent;
+
+// FIXED: Tab bar icons - wrapped in Text properly
+const TabBarIcon = ({ icon, label }) => (
+  <Text style={{ fontSize: 20 }}>{icon}</Text>
+);
 
 // ── Seeker tabs ───────────────────────────────
 function SeekerTabs() {
@@ -111,10 +129,11 @@ function SeekerTabs() {
         component={PostRequestScreen}
         options={{
           title: t('post_job'),
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>➕</Text>,
+          tabBarIcon: () => <Text style={{ fontSize: 20 }}>+</Text>,
           tabBarLabel: t('post_job')
         }}
       />
+      
       <Tab.Screen
         name="MyRequests"
         component={MyRequestsScreen}
@@ -153,6 +172,7 @@ function ProviderTabs() {
           tabBarLabel: t('home')
         }}
       />
+      
       <Tab.Screen
         name="OfferedJobs"
         component={OfferedJobsScreen}
@@ -162,12 +182,13 @@ function ProviderTabs() {
           tabBarLabel: t('offered')
         }}
       />
+      
       <Tab.Screen
         name="AcceptedJobs"
         component={AcceptedJobsScreen}
         options={{
           title: t('accepted_jobs'),
-          tabBarIcon: () => <Text style={{ fontSize: 20 }}>✅</Text>,
+          tabBarIcon: () => <Text style={{ fontSize: 20 }}>✓</Text>,
           tabBarLabel: t('accepted')
         }}
       />
@@ -204,16 +225,19 @@ function AdminTabs() {
   );
 }
 
+// ── Loading component ─────────────────────────
+const LoadingScreen = () => (
+  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+    <ActivityIndicator size="large" color="#1a56db" />
+  </View>
+);
+
 // ── Main navigator ────────────────────────────
 export default function AppNavigator() {
   const { user, loading, hasProviderRole, hasSeekerRole } = useAuth();
 
   if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#1a56db" />
-      </View>
-    );
+    return <LoadingScreen />;
   }
 
   return (
@@ -225,25 +249,25 @@ export default function AppNavigator() {
             <Stack.Screen name="Welcome" component={WelcomeScreen} />
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />
-            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
             <Stack.Screen name="Home" component={HomeScreen} />
           </>
         ) : user.role === 'admin' ? (
           // Admin screens
           <>
             <Stack.Screen name="AdminTabs" component={AdminTabs} />
-            <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
-            <Stack.Screen name="About" component={AboutScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="Settings" component={SettingsScreen} />
+            <Stack.Screen name="About" component={AboutScreen} />
           </>
         ) : (
           // Regular user (seeker/provider) - show role selection
           <>
-            <Stack.Screen name="RoleSelect" component={RoleSelectScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="RoleSelect" component={RoleSelectScreen} />
             <Stack.Screen name="SeekerTabs" component={SeekerTabs} />
             <Stack.Screen name="ProviderTabs" component={ProviderTabs} />
-            <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
-            <Stack.Screen name="About" component={AboutScreen} options={{ headerShown: false }} />
-            <Stack.Screen name="RateProvider" component={RateProviderScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="Settings" component={SettingsScreen} />
+            <Stack.Screen name="About" component={AboutScreen} />
+            <Stack.Screen name="RateProvider" component={RateProviderScreen} />
           </>
         )}
       </Stack.Navigator>
