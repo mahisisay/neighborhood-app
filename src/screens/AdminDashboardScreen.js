@@ -1,7 +1,7 @@
 // =============================================
 //  src/screens/AdminDashboardScreen.js
 //  WITH FULL AMHARIC SUPPORT - FIXED API COMPATIBILITY
-//  ADDED: Logout button that redirects to Login
+//  FIXED: Logout button now works correctly
 // =============================================
 
 import React, { useState, useCallback } from 'react';
@@ -55,7 +55,6 @@ export default function AdminDashboardScreen({ navigation }) {
         adminAPI.getPending()
       ]);
       
-      // Handle different API response formats
       const apiStats = statsData.stats || statsData;
       
       setStats({
@@ -116,22 +115,33 @@ export default function AdminDashboardScreen({ navigation }) {
     );
   }
 
-  // Logout function
-  const handleLogout = async () => {
+  // FIXED Logout function
+  const handleLogout = () => {
     Alert.alert(
-      t('logout') || 'Logout',
-      t('logout_confirm') || 'Are you sure you want to logout?',
+      'Logout',
+      'Are you sure you want to logout?',
       [
-        { text: t('cancel') || 'Cancel', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: t('logout') || 'Logout',
+          text: 'Logout',
           style: 'destructive',
           onPress: async () => {
-            await logout();
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Login' }],
-            });
+            try {
+              // Call logout from AuthContext
+              await logout();
+              // Reset navigation to Login screen
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
+            } catch (error) {
+              console.log('Logout error:', error);
+              // Force navigation even if logout fails
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
+            }
           }
         }
       ]
@@ -161,7 +171,7 @@ export default function AdminDashboardScreen({ navigation }) {
             <Text style={[styles.adminName, { color: BRAND.primary }]}>👮 {user?.name || 'Admin'}</Text>
           </View>
           <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-            <Text style={[styles.logoutButtonText, { color: BRAND.error }]}>🚪 {t('logout') || 'Logout'}</Text>
+            <Text style={[styles.logoutButtonText, { color: BRAND.error }]}>🚪 Logout</Text>
           </TouchableOpacity>
         </View>
 
