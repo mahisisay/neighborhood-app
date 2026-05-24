@@ -1,6 +1,7 @@
 // =============================================
 //  src/screens/AdminDashboardScreen.js
 //  WITH FULL AMHARIC SUPPORT - FIXED API COMPATIBILITY
+//  ADDED: Logout button that redirects to Login
 // =============================================
 
 import React, { useState, useCallback } from 'react';
@@ -25,8 +26,8 @@ const BRAND = {
   success: '#10B981',
 };
 
-export default function AdminDashboardScreen() {
-  const { user } = useAuth();
+export default function AdminDashboardScreen({ navigation }) {
+  const { user, logout } = useAuth();
   const { theme, t } = useSettings();
   const [stats, setStats] = useState({
     total_seekers: 0, 
@@ -115,6 +116,28 @@ export default function AdminDashboardScreen() {
     );
   }
 
+  // Logout function
+  const handleLogout = async () => {
+    Alert.alert(
+      t('logout') || 'Logout',
+      t('logout_confirm') || 'Are you sure you want to logout?',
+      [
+        { text: t('cancel') || 'Cancel', style: 'cancel' },
+        {
+          text: t('logout') || 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'Login' }],
+            });
+          }
+        }
+      ]
+    );
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#F9FAFB' }]}>
@@ -131,9 +154,15 @@ export default function AdminDashboardScreen() {
         contentContainerStyle={styles.inner}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(); }} />}
       >
+        {/* Header with Logout Button */}
         <View style={styles.header}>
-          <Text style={[styles.title, { color: isDark ? '#FFF' : BRAND.text }]}>{t('admin_panel')}</Text>
-          <Text style={[styles.adminName, { color: BRAND.primary }]}>👮 {user?.name || 'Admin'}</Text>
+          <View>
+            <Text style={[styles.title, { color: isDark ? '#FFF' : BRAND.text }]}>{t('admin_panel')}</Text>
+            <Text style={[styles.adminName, { color: BRAND.primary }]}>👮 {user?.name || 'Admin'}</Text>
+          </View>
+          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+            <Text style={[styles.logoutButtonText, { color: BRAND.error }]}>🚪 {t('logout') || 'Logout'}</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.statsGrid}>
@@ -254,9 +283,24 @@ export default function AdminDashboardScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   inner: { padding: 20, gap: 20 },
-  header: { marginBottom: 8 },
+  header: { 
+    marginBottom: 8, 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center' 
+  },
   title: { fontSize: 28, fontWeight: 'bold', marginBottom: 4 },
   adminName: { fontSize: 14 },
+  logoutButton: { 
+    paddingVertical: 8, 
+    paddingHorizontal: 12, 
+    borderRadius: 8,
+    backgroundColor: '#FEE2E2',
+  },
+  logoutButtonText: { 
+    fontSize: 14, 
+    fontWeight: '600' 
+  },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between' },
   statCard: { width: '31%', borderRadius: 12, padding: 12, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
   statIcon: { fontSize: 24, marginBottom: 6 },
