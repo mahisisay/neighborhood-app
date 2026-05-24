@@ -1,6 +1,6 @@
 // =============================================
 //  src/screens/AdminDashboardScreen.js
-//  WITH FULL AMHARIC SUPPORT
+//  WITH FULL AMHARIC SUPPORT - FIXED API COMPATIBILITY
 // =============================================
 
 import React, { useState, useCallback } from 'react';
@@ -29,8 +29,12 @@ export default function AdminDashboardScreen() {
   const { user } = useAuth();
   const { theme, t } = useSettings();
   const [stats, setStats] = useState({
-    total_seekers: 0, active_providers: 0, pending_providers: 0,
-    total_requests: 0, completed_jobs: 0, total_revenue_ETB: '0'
+    total_seekers: 0, 
+    active_providers: 0, 
+    pending_providers: 0,
+    total_requests: 0, 
+    completed_jobs: 0, 
+    total_revenue_ETB: '0'
   });
   const [pendingProviders, setPendingProviders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -49,9 +53,22 @@ export default function AdminDashboardScreen() {
         adminAPI.getStats(),
         adminAPI.getPending()
       ]);
-      setStats(statsData.stats);
+      
+      // Handle different API response formats
+      const apiStats = statsData.stats || statsData;
+      
+      setStats({
+        total_seekers: apiStats.totalSeekers || apiStats.total_seekers || 0,
+        active_providers: apiStats.totalProviders || apiStats.active_providers || apiStats.totalProviders || 0,
+        pending_providers: apiStats.pendingApprovals || apiStats.pending_providers || 0,
+        total_requests: apiStats.totalRequests || apiStats.total_requests || 0,
+        completed_jobs: apiStats.completedJobs || apiStats.completed_jobs || 0,
+        total_revenue_ETB: apiStats.totalRevenue || apiStats.total_revenue_ETB || '0'
+      });
+      
       setPendingProviders(pendingData.providers || []);
     } catch (err) {
+      console.log('Error loading admin data:', err);
       Alert.alert(t('error'), err.message);
     } finally {
       setLoading(false);
@@ -95,6 +112,16 @@ export default function AdminDashboardScreen() {
           }
         }
       ]
+    );
+  }
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#F9FAFB' }]}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={BRAND.primary} />
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -146,9 +173,7 @@ export default function AdminDashboardScreen() {
           {t('pending_verification')} ({pendingProviders.length})
         </Text>
 
-        {loading ? (
-          <ActivityIndicator size="large" color={BRAND.primary} style={{ marginVertical: 40 }} />
-        ) : pendingProviders.length === 0 ? (
+        {pendingProviders.length === 0 ? (
           <View style={[styles.emptyCard, { backgroundColor: isDark ? '#1E1E1E' : BRAND.white }]}>
             <Text style={styles.emptyIcon}>✅</Text>
             <Text style={[styles.emptyText, { color: isDark ? '#AAA' : BRAND.textLight }]}>
