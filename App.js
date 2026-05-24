@@ -4,6 +4,7 @@
 // =============================================
 
 import React from 'react';
+import { View, Text } from 'react-native';  // ← ADD THIS IMPORT!
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/context/AuthContext';
 import { SettingsProvider } from './src/context/SettingsContext';
