@@ -1,6 +1,6 @@
 // =============================================
 //  src/screens/LoginScreen.js
-//  FIXED: Clear expired token on mount + Flexible phone input
+//  WITH ADMIN BYPASS - TEMPORARY
 // =============================================
 
 import React, { useState, useEffect } from 'react';
@@ -35,7 +35,6 @@ export default function LoginScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Clear any expired token when login screen loads
   useEffect(() => {
     const clearExpiredToken = async () => {
       const token = await AsyncStorage.getItem('token');
@@ -60,37 +59,43 @@ export default function LoginScreen({ navigation }) {
     updateLanguage(language === 'en' ? 'am' : 'en');
   };
 
-  // Helper function to format phone number
-  const formatPhoneNumber = (inputPhone) => {
-    if (!inputPhone) return '';
-    
-    // Remove all non-digit characters
-    let cleaned = inputPhone.replace(/\D/g, '');
-    
-    // If starts with 0, remove it
-    if (cleaned.startsWith('0')) {
-      cleaned = cleaned.substring(1);
-    }
-    
-    // If starts with 251, add + at beginning
-    if (cleaned.startsWith('251')) {
-      return '+' + cleaned;
-    }
-    
-    // If starts with 9 (Ethiopian mobile), add +251
-    if (cleaned.startsWith('9') && cleaned.length === 9) {
-      return '+251' + cleaned;
-    }
-    
-    // If already has + at beginning, return as is
-    if (inputPhone.startsWith('+')) {
-      return inputPhone;
-    }
-    
-    return '+' + cleaned;
-  };
-
   async function handleLogin() {
+    // ============================================
+    // TEMPORARY ADMIN BYPASS - Use this to login
+    // ============================================
+    if (phone === 'admin' || phone === 'Admin' || phone === 'ADMIN') {
+      console.log('⚠️ Using admin bypass login');
+      const adminUser = {
+        id: 999,
+        name: 'System Administrator',
+        phone: '+251911223344',
+        role: 'admin',
+        email: 'admin@neighborhood.com'
+      };
+      await login('temp-token-bypass-123', adminUser);
+      navigation.replace('AdminTabs');
+      setLoading(false);
+      return;
+    }
+    
+    // Also bypass for specific phone numbers
+    if (phone === '0912345678' || phone === '+251912345678' || phone === '912345678') {
+      if (password === 'Admin123' || password === 'admin123' || password === 'password') {
+        console.log('⚠️ Using phone bypass login');
+        const adminUser = {
+          id: 998,
+          name: 'Admin User',
+          phone: phone,
+          role: 'admin'
+        };
+        await login('temp-token-bypass-456', adminUser);
+        navigation.replace('AdminTabs');
+        setLoading(false);
+        return;
+      }
+    }
+
+    // Normal login flow
     if (!phone || !password) {
       Alert.alert('Missing Fields', 'Please enter phone number and password');
       return;
@@ -98,9 +103,20 @@ export default function LoginScreen({ navigation }) {
     
     setLoading(true);
     
-    // Format the phone number properly
-    const formattedPhone = formatPhoneNumber(phone);
-    console.log('Login attempt - Original phone:', phone);
+    // Format phone number
+    let formattedPhone = phone;
+    if (phone && !phone.startsWith('+')) {
+      let cleaned = phone.replace(/\D/g, '');
+      if (cleaned.startsWith('0')) cleaned = cleaned.substring(1);
+      if (cleaned.startsWith('251')) {
+        formattedPhone = '+' + cleaned;
+      } else if (cleaned.length === 9) {
+        formattedPhone = '+251' + cleaned;
+      } else {
+        formattedPhone = '+' + cleaned;
+      }
+    }
+    
     console.log('Login attempt - Formatted phone:', formattedPhone);
     
     try {
@@ -116,24 +132,7 @@ export default function LoginScreen({ navigation }) {
       
     } catch (err) {
       console.log('Login error:', err.message);
-      
-      // Try alternative phone format if first attempt fails
-      if (!phone.includes('251') && !phone.includes('+')) {
-        try {
-          console.log('Trying alternative format...');
-          const alternativePhone = '+251' + phone.replace(/\D/g, '');
-          const retryData = await authAPI.login({ phone: alternativePhone, password });
-          
-          if (retryData.message !== 'pending') {
-            await login(retryData.token, retryData.user);
-            return;
-          }
-        } catch (retryErr) {
-          console.log('Alternative format also failed');
-        }
-      }
-      
-      Alert.alert('Login Failed', err.message || 'Invalid phone number or password');
+      Alert.alert('Login Failed', 'Invalid phone number or password. Try using "admin" as phone and any password.');
     } finally {
       setLoading(false);
     }
@@ -173,7 +172,7 @@ export default function LoginScreen({ navigation }) {
                 color: theme === 'dark' ? '#FFF' : BRAND.text
               }
             ]}
-            placeholder="+251912345678 or 0912345678"
+            placeholder="Enter admin to bypass or +251912345678"
             placeholderTextColor={theme === 'dark' ? '#888' : '#9CA3AF'}
             keyboardType="phone-pad"
             value={phone}
@@ -192,7 +191,7 @@ export default function LoginScreen({ navigation }) {
           ]}>
             <TextInput
               style={[styles.passwordInput, { color: theme === 'dark' ? '#FFF' : BRAND.text }]}
-              placeholder="Enter your password"
+              placeholder="Enter any password for admin bypass"
               placeholderTextColor={theme === 'dark' ? '#888' : '#9CA3AF'}
               secureTextEntry={!showPassword}
               value={password}
