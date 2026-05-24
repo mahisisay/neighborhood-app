@@ -1,10 +1,15 @@
-// src/screens/LoginScreen.js
-import React, { useState } from 'react';
+// =============================================
+//  src/screens/LoginScreen.js
+//  FIXED: Clear expired token on mount
+// =============================================
+
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, SafeAreaView, Alert,
   KeyboardAvoidingView, Platform, ActivityIndicator
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authAPI } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
@@ -29,6 +34,27 @@ export default function LoginScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Clear any expired token when login screen loads
+  useEffect(() => {
+    const clearExpiredToken = async () => {
+      const token = await AsyncStorage.getItem('token');
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          if (payload.exp * 1000 < Date.now()) {
+            await AsyncStorage.removeItem('token');
+            await AsyncStorage.removeItem('user');
+            console.log('Cleared expired token on login screen');
+          }
+        } catch (e) {
+          await AsyncStorage.removeItem('token');
+          await AsyncStorage.removeItem('user');
+        }
+      }
+    };
+    clearExpiredToken();
+  }, []);
 
   const toggleLanguage = () => {
     updateLanguage(language === 'en' ? 'am' : 'en');

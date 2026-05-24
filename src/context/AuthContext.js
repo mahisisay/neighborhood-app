@@ -2,6 +2,7 @@
 //  src/context/AuthContext.js
 //  Session management with expiry check on app start
 //  UPDATED: Added role flags for Seeker/Provider selection
+//  FIXED: Better expired token handling and cleanup
 // =============================================
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
@@ -13,6 +14,7 @@ const BASE_URL = 'https://neighborhood-backend-production.up.railway.app';
 
 // Function to check if JWT token is expired
 function checkTokenExpiry(jwtToken) {
+  if (!jwtToken) return true;
   try {
     const base64Url = jwtToken.split('.')[1];
     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -53,13 +55,10 @@ export function AuthProvider({ children }) {
       if (storedToken && storedUser) {
         // Check if token is expired
         if (checkTokenExpiry(storedToken)) {
-          console.log('Session expired on app start, logging out');
+          console.log('Session expired on app start, clearing storage');
           await AsyncStorage.removeItem('token');
           await AsyncStorage.removeItem('user');
-          Alert.alert(
-            'Session Expired',
-            'Your session has expired. Please login again to continue.'
-          );
+          // Don't show alert on app start - let user login fresh
         } else {
           setToken(storedToken);
           setUser(JSON.parse(storedUser));
@@ -67,6 +66,8 @@ export function AuthProvider({ children }) {
       }
     } catch (error) {
       console.log('Error loading auth:', error);
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('user');
     } finally {
       setLoading(false);
     }
@@ -74,6 +75,10 @@ export function AuthProvider({ children }) {
 
   async function login(tokenValue, userData) {
     try {
+      // Clear any old tokens first
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('user');
+      // Save new token and user
       await AsyncStorage.setItem('token', tokenValue);
       await AsyncStorage.setItem('user', JSON.stringify(userData));
       setToken(tokenValue);
