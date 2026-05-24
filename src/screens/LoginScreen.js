@@ -1,6 +1,6 @@
 // =============================================
 //  src/screens/LoginScreen.js
-//  WITH ADMIN BYPASS - Place at VERY TOP of handleLogin
+//  CLEAN VERSION - No admin bypass, only real login
 // =============================================
 
 import React, { useState, useEffect } from 'react';
@@ -62,42 +62,6 @@ export default function LoginScreen({ navigation }) {
   async function handleLogin() {
     console.log('🔐 Login clicked with:', { phone, password });
     
-    // ============================================
-    // ADMIN BYPASS - MUST BE FIRST!
-    // ============================================
-    // Option 1: Type "admin" as phone
-    if (phone === 'admin' || phone === 'Admin' || phone === 'ADMIN') {
-      console.log('✅ ADMIN BYPASS ACTIVATED!');
-      const adminUser = {
-        id: 999,
-        name: 'System Administrator',
-        phone: '+251911223344',
-        role: 'admin',
-        email: 'admin@neighborhood.com'
-      };
-      await login('temp-token-bypass-123', adminUser);
-      navigation.replace('AdminTabs');
-      setLoading(false);
-      return;
-    }
-    
-    // Option 2: Use specific phone numbers
-    const bypassPhones = ['0912345678', '+251912345678', '912345678', '251912345678'];
-    if (bypassPhones.includes(phone)) {
-      console.log('✅ PHONE BYPASS ACTIVATED!');
-      const adminUser = {
-        id: 998,
-        name: 'Admin User',
-        phone: phone,
-        role: 'admin'
-      };
-      await login('temp-token-bypass-456', adminUser);
-      navigation.replace('AdminTabs');
-      setLoading(false);
-      return;
-    }
-
-    // Normal login - only if no bypass triggered
     if (!phone || !password) {
       Alert.alert('Missing Fields', 'Please enter phone number and password');
       return;
@@ -105,7 +69,7 @@ export default function LoginScreen({ navigation }) {
     
     setLoading(true);
     
-    // Format phone number
+    // Format phone number to standard format
     let formattedPhone = phone;
     if (phone && !phone.startsWith('+')) {
       let cleaned = phone.replace(/\D/g, '');
@@ -134,7 +98,7 @@ export default function LoginScreen({ navigation }) {
       
     } catch (err) {
       console.log('Login error:', err.message);
-      Alert.alert('Login Failed', 'Invalid credentials. Try using "admin" as phone with any password.');
+      Alert.alert('Login Failed', 'Invalid phone number or password');
     } finally {
       setLoading(false);
     }
@@ -174,9 +138,9 @@ export default function LoginScreen({ navigation }) {
                 color: theme === 'dark' ? '#FFF' : BRAND.text
               }
             ]}
-            placeholder="Type 'admin' to bypass login"
+            placeholder="+251912345678 or 0912345678"
             placeholderTextColor={theme === 'dark' ? '#888' : '#9CA3AF'}
-            keyboardType="default"
+            keyboardType="phone-pad"
             value={phone}
             onChangeText={setPhone}
           />
@@ -193,7 +157,7 @@ export default function LoginScreen({ navigation }) {
           ]}>
             <TextInput
               style={[styles.passwordInput, { color: theme === 'dark' ? '#FFF' : BRAND.text }]}
-              placeholder="Any password works with 'admin'"
+              placeholder="Enter your password"
               placeholderTextColor={theme === 'dark' ? '#888' : '#9CA3AF'}
               secureTextEntry={!showPassword}
               value={password}
