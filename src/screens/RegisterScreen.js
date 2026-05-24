@@ -1,6 +1,6 @@
 // =============================================
 //  src/screens/RegisterScreen.js
-//  FIXED: Service selection always shows for providers
+//  FULL AMHARIC SUPPORT - All text uses t() function
 // =============================================
 
 import React, { useState, useEffect } from 'react';
@@ -66,7 +66,6 @@ export default function RegisterScreen({ navigation }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedCategories, setExpandedCategories] = useState({});
 
-  // Load subcategories when role changes to provider
   useEffect(() => {
     if (role === 'provider') {
       loadSubcategories();
@@ -79,7 +78,6 @@ export default function RegisterScreen({ navigation }) {
     setLoadingServices(true);
     try {
       const data = await subcategoryAPI.getAll();
-      console.log('Loaded subcategories:', data.subcategories?.length);
       setSubcategories(data.subcategories || []);
       
       const categories = {};
@@ -91,14 +89,13 @@ export default function RegisterScreen({ navigation }) {
       setExpandedCategories(categories);
     } catch (err) {
       console.log('Error loading subcategories:', err);
-      Alert.alert('Error', 'Could not load services. Please check your connection.');
+      Alert.alert(t('error'), t('could_not_load_categories'));
       setSubcategories([]);
     } finally {
       setLoadingServices(false);
     }
   }
 
-  // Live validation
   useEffect(() => {
     const errors = {};
     const nameErr = getNameError(name);
@@ -189,7 +186,7 @@ export default function RegisterScreen({ navigation }) {
 
   async function handleRegister() {
     if (role === 'provider' && selectedServices.length === 0) {
-      Alert.alert('Validation Error', 'Please select at least one service you offer');
+      Alert.alert(t('error'), t('select_at_least_one_service'));
       return;
     }
 
@@ -207,7 +204,7 @@ export default function RegisterScreen({ navigation }) {
     
     if (!isFormValid(errors)) {
       const firstError = Object.values(errors)[0];
-      Alert.alert('Validation Error', firstError);
+      Alert.alert(t('error'), firstError);
       return;
     }
 
@@ -220,19 +217,19 @@ export default function RegisterScreen({ navigation }) {
       if (role === 'provider') {
         await uploadDocuments();
         Alert.alert(
-          'Registration Successful',
-          'Your account is pending admin verification.',
-          [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
+          t('registration_success'),
+          t('provider_pending_message'),
+          [{ text: t('ok'), onPress: () => navigation.navigate('Login') }]
         );
       } else {
         Alert.alert(
-          'Registration Successful',
-          'You can now login to your account.',
-          [{ text: 'Login Now', onPress: () => navigation.navigate('Login') }]
+          t('registration_success'),
+          t('seeker_success_message'),
+          [{ text: t('login_now'), onPress: () => navigation.navigate('Login') }]
         );
       }
     } catch (err) {
-      Alert.alert('Registration Failed', err.message);
+      Alert.alert(t('registration_failed'), err.message);
     } finally {
       setLoading(false);
     }
@@ -251,7 +248,7 @@ export default function RegisterScreen({ navigation }) {
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#F9FAFB' }]}>
       <View style={styles.headerRow}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={[styles.backBtnText, { color: BRAND.primary }]}>← Back</Text>
+          <Text style={[styles.backBtnText, { color: BRAND.primary }]}>← {t('back')}</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={toggleLanguage} style={styles.langBtn}>
           <Text style={styles.langBtnText}>{language === 'en' ? 'አማርኛ' : 'English'}</Text>
@@ -261,44 +258,44 @@ export default function RegisterScreen({ navigation }) {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.inner}>
           <View style={styles.header}>
-            <Text style={[styles.title, { color: isDark ? '#FFF' : BRAND.text }]}>Create Account 🏘️</Text>
-            <Text style={[styles.subtitle, { color: isDark ? '#AAA' : BRAND.textLight }]}>Join our community</Text>
+            <Text style={[styles.title, { color: isDark ? '#FFF' : BRAND.text }]}>{t('create_account')} 🏘️</Text>
+            <Text style={[styles.subtitle, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('join_us')}</Text>
           </View>
 
-          <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>I am a</Text>
+          <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>{t('i_am_a')}</Text>
           <View style={styles.roleRow}>
             <TouchableOpacity
               style={[styles.roleBtn, role === 'seeker' && styles.roleBtnActive]}
               onPress={() => setRole('seeker')}
             >
               <Text style={styles.roleIcon}>🔍</Text>
-              <Text style={[styles.roleText, role === 'seeker' && styles.roleTextActive]}>Service Seeker</Text>
-              <Text style={[styles.roleDesc, { color: isDark ? '#888' : BRAND.textLight }]}>Need a service done</Text>
+              <Text style={[styles.roleText, role === 'seeker' && styles.roleTextActive]}>{t('seeker')}</Text>
+              <Text style={[styles.roleDesc, { color: isDark ? '#888' : BRAND.textLight }]}>{t('seeker_desc')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.roleBtn, role === 'provider' && styles.roleBtnActive]}
               onPress={() => setRole('provider')}
             >
               <Text style={styles.roleIcon}>👷</Text>
-              <Text style={[styles.roleText, role === 'provider' && styles.roleTextActive]}>Service Provider</Text>
-              <Text style={[styles.roleDesc, { color: isDark ? '#888' : BRAND.textLight }]}>Offer your skills</Text>
+              <Text style={[styles.roleText, role === 'provider' && styles.roleTextActive]}>{t('provider')}</Text>
+              <Text style={[styles.roleDesc, { color: isDark ? '#888' : BRAND.textLight }]}>{t('provider_desc')}</Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>Full Name</Text>
+          <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>{t('full_name')}</Text>
           <TextInput
             style={[styles.input, validationErrors.name && styles.inputError]}
-            placeholder="Your full name"
+            placeholder={t('name_placeholder')}
             placeholderTextColor={isDark ? '#888' : BRAND.textLight}
             value={name}
             onChangeText={setName}
           />
           {validationErrors.name && <Text style={[styles.errorText, { color: BRAND.error }]}>{validationErrors.name}</Text>}
 
-          <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>Phone Number</Text>
+          <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>{t('phone_number')}</Text>
           <TextInput
             style={[styles.input, validationErrors.phone && styles.inputError]}
-            placeholder="+251912345678"
+            placeholder={t('phone_placeholder')}
             placeholderTextColor={isDark ? '#888' : BRAND.textLight}
             keyboardType="phone-pad"
             value={phone}
@@ -306,10 +303,10 @@ export default function RegisterScreen({ navigation }) {
           />
           {validationErrors.phone && <Text style={[styles.errorText, { color: BRAND.error }]}>{validationErrors.phone}</Text>}
 
-          <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>Password</Text>
+          <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>{t('password')}</Text>
           <TextInput
             style={[styles.input, validationErrors.password && styles.inputError]}
-            placeholder="At least 6 characters with 1 number"
+            placeholder={t('password_placeholder')}
             placeholderTextColor={isDark ? '#888' : BRAND.textLight}
             secureTextEntry
             value={password}
@@ -317,20 +314,18 @@ export default function RegisterScreen({ navigation }) {
           />
           {validationErrors.password && <Text style={[styles.errorText, { color: BRAND.error }]}>{validationErrors.password}</Text>}
 
-          {/* Provider-specific fields */}
           {role === 'provider' && (
             <>
               <View style={styles.divider} />
               
-              <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : BRAND.text }]}>Select Your Services</Text>
-              <Text style={[styles.sectionDesc, { color: isDark ? '#AAA' : BRAND.textLight }]}>Choose all services you offer (required)</Text>
+              <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : BRAND.text }]}>{t('select_services')}</Text>
+              <Text style={[styles.sectionDesc, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('select_services_desc')}</Text>
 
-              {/* Search Bar */}
               <View style={[styles.searchContainer, { backgroundColor: isDark ? '#2C2C2C' : '#F3F4F6' }]}>
                 <Text style={styles.searchIcon}>🔍</Text>
                 <TextInput
                   style={[styles.searchInput, { color: isDark ? '#FFF' : BRAND.text }]}
-                  placeholder="Search services..."
+                  placeholder={t('search_services')}
                   placeholderTextColor={isDark ? '#888' : BRAND.textLight}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
@@ -342,11 +337,10 @@ export default function RegisterScreen({ navigation }) {
                 )}
               </View>
 
-              {/* Selected Count Badge */}
               {selectedServices.length > 0 && (
                 <View style={[styles.selectedBadge, { backgroundColor: BRAND.primaryLight }]}>
                   <Text style={[styles.selectedBadgeText, { color: BRAND.primary }]}>
-                    ✅ {selectedServices.length} service(s) selected
+                    ✅ {selectedServices.length} {t('services_selected')}
                   </Text>
                 </View>
               )}
@@ -355,9 +349,9 @@ export default function RegisterScreen({ navigation }) {
                 <ActivityIndicator size="large" color={BRAND.primary} style={{ marginVertical: 20 }} />
               ) : subcategories.length === 0 ? (
                 <View style={{ padding: 20, alignItems: 'center' }}>
-                  <Text style={{ color: BRAND.error }}>⚠️ No services loaded</Text>
+                  <Text style={{ color: BRAND.error }}>⚠️ {t('no_services')}</Text>
                   <TouchableOpacity onPress={loadSubcategories} style={{ marginTop: 10 }}>
-                    <Text style={{ color: BRAND.primary }}>Retry</Text>
+                    <Text style={{ color: BRAND.primary }}>{t('retry')}</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -429,10 +423,10 @@ export default function RegisterScreen({ navigation }) {
               )}
               
               <View style={styles.divider} />
-              <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : BRAND.text }]}>Verification Documents</Text>
-              <Text style={[styles.sectionDesc, { color: isDark ? '#AAA' : BRAND.textLight }]}>These will be reviewed by admin</Text>
+              <Text style={[styles.sectionTitle, { color: isDark ? '#FFF' : BRAND.text }]}>{t('verification_docs')}</Text>
+              <Text style={[styles.sectionDesc, { color: isDark ? '#AAA' : BRAND.textLight }]}>{t('admin_review_note')}</Text>
 
-              <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>National ID Photo *</Text>
+              <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>{t('national_id')} *</Text>
               <TouchableOpacity
                 style={[styles.uploadBtn, idPhoto && styles.uploadBtnDone]}
                 onPress={() => pickImage(setIdPhoto)}
@@ -440,14 +434,14 @@ export default function RegisterScreen({ navigation }) {
                 {idPhoto ? (
                   <View style={styles.uploadedRow}>
                     <Image source={{ uri: idPhoto.uri }} style={styles.thumbImage} />
-                    <Text style={[styles.uploadedText, { color: BRAND.success }]}>ID Photo Selected</Text>
+                    <Text style={[styles.uploadedText, { color: BRAND.success }]}>{t('id_selected')}</Text>
                   </View>
                 ) : (
-                  <Text style={[styles.uploadBtnText, { color: isDark ? '#AAA' : BRAND.textLight }]}>📷 Upload National ID</Text>
+                  <Text style={[styles.uploadBtnText, { color: isDark ? '#AAA' : BRAND.textLight }]}>📷 {t('upload_id_btn')}</Text>
                 )}
               </TouchableOpacity>
 
-              <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>Certificate (Optional)</Text>
+              <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>{t('certificate')} ({t('optional')})</Text>
               <TouchableOpacity
                 style={[styles.uploadBtn, certificate && styles.uploadBtnDone]}
                 onPress={() => pickImage(setCertificate)}
@@ -455,17 +449,17 @@ export default function RegisterScreen({ navigation }) {
                 {certificate ? (
                   <View style={styles.uploadedRow}>
                     <Image source={{ uri: certificate.uri }} style={styles.thumbImage} />
-                    <Text style={[styles.uploadedText, { color: BRAND.success }]}>Certificate Selected</Text>
+                    <Text style={[styles.uploadedText, { color: BRAND.success }]}>{t('cert_selected')}</Text>
                   </View>
                 ) : (
-                  <Text style={[styles.uploadBtnText, { color: isDark ? '#AAA' : BRAND.textLight }]}>📄 Upload Certificate</Text>
+                  <Text style={[styles.uploadBtnText, { color: isDark ? '#AAA' : BRAND.textLight }]}>📄 {t('upload_cert_btn')}</Text>
                 )}
               </TouchableOpacity>
 
-              <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>Experience Description</Text>
+              <Text style={[styles.label, { color: isDark ? '#DDD' : BRAND.text }]}>{t('experience_desc')}</Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
-                placeholder="Tell us about your experience..."
+                placeholder={t('experience_placeholder')}
                 placeholderTextColor={isDark ? '#888' : BRAND.textLight}
                 multiline
                 numberOfLines={4}
@@ -476,7 +470,7 @@ export default function RegisterScreen({ navigation }) {
 
               <View style={[styles.noteBox, { backgroundColor: isDark ? '#5C1E1E' : '#FEF3C7', borderLeftColor: '#F59E0B' }]}>
                 <Text style={[styles.noteText, { color: isDark ? '#FFB3B3' : '#92400E' }]}>
-                  Your documents will be reviewed. You will be notified once verified.
+                  {t('verification_note')}
                 </Text>
               </View>
             </>
@@ -487,12 +481,12 @@ export default function RegisterScreen({ navigation }) {
             onPress={handleRegister}
             disabled={loading}
           >
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Create Account</Text>}
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{t('create_account')}</Text>}
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => navigation.navigate('Login')}>
             <Text style={[styles.linkText, { color: isDark ? '#AAA' : BRAND.textLight }]}>
-              Already have an account? <Text style={[styles.link, { color: BRAND.primary }]}>Login</Text>
+              {t('have_account')} <Text style={[styles.link, { color: BRAND.primary }]}>{t('login')}</Text>
             </Text>
           </TouchableOpacity>
         </ScrollView>
