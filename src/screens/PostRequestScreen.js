@@ -1,6 +1,7 @@
 // =============================================
 //  src/screens/PostRequestScreen.js
 //  COMPLETE FIXED VERSION - With Role Check & Working Success Modal
+//  FIXED: Better response parsing & logging
 // =============================================
 
 import React, { useState, useEffect } from 'react';
@@ -191,17 +192,30 @@ export default function PostRequestScreen({ navigation, route }) {
         longitude: location.longitude,
       };
 
+      console.log('📤 Posting request with data:', requestData);
       const data = await requestAPI.create(requestData);
+      
+      console.log('📥 Response from server:', data);
+      
+      // ✅ FIXED: Properly extract data from response
+      const requestId = data.requestId || data.id;
+      const nearbyProviders = data.matching_summary?.providers_notified || 
+                              data.nearbyProvidersNotified || 
+                              data.ranked_providers?.length || 0;
+      const message = data.message || 'Request posted successfully!';
+      
+      console.log('✅ Success! Request ID:', requestId, 'Providers:', nearbyProviders);
       
       // Store success data and show modal
       setSuccessData({
-        requestId: data.requestId,
-        nearbyProviders: data.nearbyProvidersNotified || 0,
-        message: data.message || 'Request posted successfully!'
+        requestId: requestId,
+        nearbyProviders: nearbyProviders,
+        message: message
       });
       setShowSuccessModal(true);
       
     } catch (err) {
+      console.error('❌ Error creating request:', err);
       Alert.alert('Error', err.message);
     } finally {
       setLoading(false);
@@ -389,7 +403,7 @@ export default function PostRequestScreen({ navigation, route }) {
             </Text>
             
             <Text style={[styles.successMessage, { color: isDark ? '#CCC' : BRAND.textLight }]}>
-              Your request has been posted and is now visible to providers in your area.
+              {successData.message || 'Your request has been posted and is now visible to providers in your area.'}
             </Text>
             
             <View style={styles.successDetails}>
@@ -397,7 +411,7 @@ export default function PostRequestScreen({ navigation, route }) {
                 Request ID:
               </Text>
               <Text style={[styles.detailValue, { color: BRAND.primary, fontWeight: 'bold' }]}>
-                #{successData.requestId}
+                #{successData.requestId || 'N/A'}
               </Text>
               
               <Text style={[styles.detailLabel, { color: isDark ? '#AAA' : BRAND.textLight, marginTop: 8 }]}>
