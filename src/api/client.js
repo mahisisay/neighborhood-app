@@ -1,6 +1,7 @@
 // =============================================
 //  src/api/client.js — COMPLETE FIXED
 //  Fixed: Registration doesn't require token check
+//  UPDATED: Better error logging for POST requests
 // =============================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -49,21 +50,34 @@ async function apiCall(endpoint, method = 'GET', body = null, skipTokenCheck = f
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const config = { method, headers };
   if (body) config.body = JSON.stringify(body);
-  const response = await fetch(`${BASE_URL}${endpoint}`, config);
-  const data = await response.json();
   
-  // Handle token expired response from backend
-  if (response.status === 401 && data.code === 'TOKEN_EXPIRED') {
-    await AsyncStorage.removeItem('token');
-    await AsyncStorage.removeItem('user');
-    Alert.alert('Session Expired', 'Please login again to continue.');
-    throw new Error('Session expired');
+  try {
+    const response = await fetch(`${BASE_URL}${endpoint}`, config);
+    const data = await response.json();
+    
+    // Handle token expired response from backend
+    if (response.status === 401 && data.code === 'TOKEN_EXPIRED') {
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('user');
+      Alert.alert('Session Expired', 'Please login again to continue.');
+      throw new Error('Session expired');
+    }
+    
+    if (!response.ok) {
+      // Better error messages from backend
+      console.log('API Error Response:', {
+        status: response.status,
+        message: data.message,
+        error: data.error,
+        details: data.details
+      });
+      throw new Error(data.message || data.error || 'Something went wrong');
+    }
+    return data;
+  } catch (error) {
+    console.error(`API Call Failed: ${method} ${endpoint}`, error);
+    throw error;
   }
-  
-  if (!response.ok) {
-    throw new Error(data.message || 'Something went wrong');
-  }
-  return data;
 }
 
 // Special login just to get token for document upload
@@ -88,9 +102,24 @@ export const authAPI = {
 };
 
 // ── Requests ─────────────────────────────────
+// FIXED: Convert snake_case to camelCase for backend compatibility
 export const requestAPI = {
   getCategories: ()     => apiCall('/api/requests/categories'),
-  create:        (body) => apiCall('/api/requests',    'POST', body),
+  create:        (body) => {
+    // Convert field names to match backend expectations
+    const convertedBody = {
+      categoryId: body.category_id,
+      subcategoryId: body.subcategory_id,
+      description: body.description,
+      latitude: body.latitude,
+      longitude: body.longitude,
+      status: 'pending',
+      // Add userId if available from auth context
+      ...(body.userId && { userId: body.userId })
+    };
+    console.log('Creating request with body:', convertedBody);
+    return apiCall('/api/requests', 'POST', convertedBody);
+  },
   getMyRequests: ()     => apiCall('/api/requests/my'),
   getOffered:    ()     => apiCall('/api/requests/offered'),
   accept:        (id)   => apiCall(`/api/requests/${id}/accept`, 'POST'),
