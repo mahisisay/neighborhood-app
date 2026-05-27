@@ -102,23 +102,22 @@ export const authAPI = {
 };
 
 // ── Requests ─────────────────────────────────
-// FIXED: Convert snake_case to camelCase for backend compatibility
+// FIXED: Keep snake_case - backend expects category_id, subcategory_id
 export const requestAPI = {
   getCategories: ()     => apiCall('/api/requests/categories'),
   create:        (body) => {
-    // Convert field names to match backend expectations
-    const convertedBody = {
-      categoryId: body.category_id,
-      subcategoryId: body.subcategory_id,
+    // Backend expects these exact field names (snake_case)
+    const requestPayload = {
+      category_id: body.category_id,
+      subcategory_id: body.subcategory_id,
       description: body.description,
       latitude: body.latitude,
       longitude: body.longitude,
-      status: 'pending',
-      // Add userId if available from auth context
-      ...(body.userId && { userId: body.userId })
+      photo_url: body.photo_url || null
     };
-    console.log('Creating request with body:', convertedBody);
-    return apiCall('/api/requests', 'POST', convertedBody);
+    
+    console.log('📤 Sending request payload:', requestPayload);
+    return apiCall('/api/requests', 'POST', requestPayload);
   },
   getMyRequests: ()     => apiCall('/api/requests/my'),
   getOffered:    ()     => apiCall('/api/requests/offered'),
