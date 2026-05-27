@@ -1,6 +1,6 @@
 // =============================================
 //  src/screens/PostRequestScreen.js
-//  COMPLETE FIXED VERSION - With Working Success Modal
+//  COMPLETE FIXED VERSION - With Role Check & Working Success Modal
 // =============================================
 
 import React, { useState, useEffect } from 'react';
@@ -21,6 +21,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { requestAPI } from '../api/client';
 import { getDescriptionError } from '../utils/validation';
 import { useSettings } from '../context/SettingsContext';
+import { useAuth } from '../context/AuthContext';
 
 const BRAND = {
   primary: '#2E7D32',
@@ -46,6 +47,7 @@ const ICON_MAP = {
 
 export default function PostRequestScreen({ navigation, route }) {
   const { t, theme } = useSettings();
+  const { user } = useAuth();
   const preselectedCategory = route.params?.category || null;
   const preselectedSubcategory = route.params?.subcategory_name || null;
   const preselectedCategoryId = route.params?.category_id || null;
@@ -72,6 +74,25 @@ export default function PostRequestScreen({ navigation, route }) {
   const isDark = theme === 'dark';
 
   useEffect(() => {
+    // ✅ CHECK ROLE ON SCREEN LOAD
+    if (user?.role !== 'seeker') {
+      Alert.alert(
+        'Access Denied',
+        'Only seekers can post requests. Please switch to Seeker mode in Settings.',
+        [
+          { 
+            text: 'Go to Settings', 
+            onPress: () => navigation.navigate('Settings')
+          },
+          { 
+            text: 'Go Back', 
+            onPress: () => navigation.goBack()
+          }
+        ]
+      );
+      return;
+    }
+
     loadCategories();
     getLocation();
 
@@ -81,7 +102,7 @@ export default function PostRequestScreen({ navigation, route }) {
     } else if (preselectedCategory) {
       setSelectedCat(preselectedCategory);
     }
-  }, []);
+  }, [user?.role]);
 
   async function loadCategories() {
     try {
@@ -126,6 +147,15 @@ export default function PostRequestScreen({ navigation, route }) {
   }
 
   async function handleSubmit() {
+    // ✅ DOUBLE CHECK ROLE BEFORE SUBMITTING
+    if (user?.role !== 'seeker') {
+      Alert.alert(
+        'Access Denied',
+        'Only seekers can post requests.'
+      );
+      return;
+    }
+
     if (!selectedCat) {
       Alert.alert('Error', 'Please select a service category');
       return;
